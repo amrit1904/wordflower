@@ -19,17 +19,15 @@ interface SignUpForm {
   occupation: string
   nativeLanguage: string
   englishProficiency: string
-  wordflowerFrequency: string
+  wordflowerFamiliarity: string
 }
 
 interface OptionsProps {
-  label: string
   value: string
   options: string[]
 }
 
 const ENGLISH: OptionsProps = {
-  label: 'English Proficiency *',
   value: 'Select proficiency level',
   options:
     [
@@ -42,7 +40,6 @@ const ENGLISH: OptionsProps = {
 }
 
 const GENDER: OptionsProps = {
-  label: 'Gender *',
   value: 'Select gender',
   options:
     [
@@ -56,7 +53,6 @@ const GENDER: OptionsProps = {
 
 const EDUCATION_OPTIONS: OptionsProps =
 {
-  label: "Education Level *",
   value: "Select education level",
   options: [
     "High School",
@@ -67,20 +63,17 @@ const EDUCATION_OPTIONS: OptionsProps =
   ],
 }
 
-const WORDFLOWER_FREQUENCY: OptionsProps = {
-  label: "Wordflower frequency *",
-  value: "Select frequency",
+const WORDFLOWER_FAMILIARITY: OptionsProps = {
+  value: "Select familiarity",
   options: [
-    "Never",
-    "Rarely (less than once a month)",
-    "Occasionally (about once a month)",
-    "Sometimes (a few times a month)",
-    "Often (a few times a week)",
-    "Very often (almost every day)",
+    "Not familiar at all",
+    "I've heard of these games but never played",
+    "I've tried them once or twice",
+    "I play occasionally (a few times a month)",
+    "I play regularly (a few times a week)",
+    "I play very frequently (daily or almost daily)",
   ],
 }
-
-
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState<SignUpForm>({
@@ -93,7 +86,7 @@ export default function SignUpPage() {
     occupation: "",
     nativeLanguage: "",
     englishProficiency: "",
-    wordflowerFrequency: "",
+    wordflowerFamiliarity: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -115,13 +108,12 @@ export default function SignUpPage() {
     }))
   }
 
-  // console.log("Form Data:", formData)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Basic validation
-    const requiredFields = ['firstName', 'lastName', 'email', 'age', 'gender', 'education', 'nativeLanguage', 'englishProficiency', 'wordflowerFrequency']
+    const requiredFields = ['firstName', 'lastName', 'email', 'age', 'gender', 'education', 'nativeLanguage', 'englishProficiency', 'wordflowerFamiliarity', 'occupation']
     const missingFields = requiredFields.filter(field => !formData[field as keyof SignUpForm].trim())
 
     if (missingFields.length > 0) {
@@ -296,7 +288,7 @@ export default function SignUpPage() {
                 </div>
                 <div className="w-full">
                   <label htmlFor="occupation" className="block text-sm font-medium mb-2">
-                    Occupation
+                    Occupation *
                   </label>
                   <input
                     id="occupation"
@@ -330,16 +322,16 @@ export default function SignUpPage() {
             </div>
             {/* Wordflower Experience */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Wordflower Experience</h3>
+              <h3 className="text-lg font-semibold mb-4">Prior Experience</h3>
               <div className="space-y-4 w-full">
                 <div className="w-full">
-                  <label htmlFor="wordflowerFrequency" className="block text-sm font-medium mb-2">
-                    How often do you play Wordflower? *
+                  <label htmlFor="wordflowerFamiliarity" className="block text-sm font-medium mb-2">
+                    Are you familiar with games like the NYT Spelling Bee? *
                   </label>
                   <CustomSelect
-                    options={WORDFLOWER_FREQUENCY}
-                    onChange={(val) => setFormData((prev) => ({ ...prev, wordflowerFrequency: val }))}
-                    selected={formData.wordflowerFrequency}
+                    options={WORDFLOWER_FAMILIARITY}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, wordflowerFamiliarity: val }))}
+                    selected={formData.wordflowerFamiliarity}
                   />
                 </div>
               </div>
@@ -379,7 +371,7 @@ interface CustomSelectProps {
 }
 
 function CustomSelect({ options, onChange, selected }: CustomSelectProps) {
-  const { label, value, options: opts } = options
+  const { value, options: opts } = options
   return (
     <Select value={selected} onValueChange={onChange}>
       <SelectTrigger
@@ -389,7 +381,6 @@ function CustomSelect({ options, onChange, selected }: CustomSelectProps) {
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
           {opts.map((option) => (
             <SelectItem key={option} value={option}>
               {option}
