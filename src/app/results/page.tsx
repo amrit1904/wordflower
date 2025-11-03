@@ -45,7 +45,7 @@ export default function ResultsPage() {
   const [feedbackForm, setFeedbackForm] = useState<FeedbackForm>({
     satisfaction: 0,
     mostDifficult: '',
-    willReturn: false
+    willReturn: true
   })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
@@ -256,9 +256,14 @@ export default function ResultsPage() {
 
                 {/* Most Difficult Question */}
                 <div className="space-y-3">
+                  <div className="flex justify-between items-center">
                   <label className="text-sm font-medium" htmlFor="mostDifficult">
                     What was the most difficult part for you? <span className="text-red-500">*</span>
                   </label>
+                  <div className="text-xs text-muted-foreground text-right">
+                    {feedbackForm.mostDifficult.length}/200
+                  </div>
+                  </div>
                   <textarea
                     id="mostDifficult"
                     value={feedbackForm.mostDifficult}
@@ -267,9 +272,7 @@ export default function ResultsPage() {
                     className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                     maxLength={200}
                   />
-                  <div className="text-xs text-muted-foreground text-right">
-                    {feedbackForm.mostDifficult.length}/200
-                  </div>
+                  
                 </div>
 
                 {/* Will Return Question */}
