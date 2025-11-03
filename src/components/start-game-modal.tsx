@@ -66,10 +66,11 @@ export function StartGameModal({
           <div>
             <h4 className="font-semibold mb-2">How to Play:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Play this game on your own and do not use any external resources</li>
               <li>Create as many words as you can using the available letters</li>
               <li>Each word must contain the center letter and be at least 4 letters long</li>
               <li>You can repeat letters as needed</li>
-              <li>Look for pangrams - words that use all the letters!</li>
+              <li>Each game has atleast one pangram - words that use all the letters!</li>
             </ul>
           </div>
           
