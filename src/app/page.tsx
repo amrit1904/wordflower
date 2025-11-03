@@ -10,7 +10,7 @@ import { EndGameConfirmModal } from "@/components/end-game-confirm-modal"
 import { GameControls } from "@/components/game-controls"
 import { GameActions } from "@/components/game-actions"
 import { GameRules } from '@/components/game-rules'
-import { isValidWord, WordHints } from "@/lib/word-data"
+import { hasCentralLetter, isValidWord, WordHints } from "@/lib/word-data"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -763,6 +763,20 @@ export default function WordflowerGame() {
       return
     }
 
+    if (!hasCentralLetter(lowerWord, gameData.centerLetter)) {
+      logAnalyticsEvent('word_submission_failed', {
+        reason: 'missing_central_letter',
+        attemptedWord: lowerWord,
+        centerLetter: gameData.centerLetter,
+        currentTime: getElapsedTime()
+      })
+      setTimeout(() => {
+        setCurrentWord("")
+      }, 1000)
+      toast.error(`Word must include the central letter "${gameData.centerLetter.toUpperCase()}"`)
+      return
+    }
+
     if (!isValidWord(lowerWord, gameData.centerLetter, gameData.outerLetters)) {
       logAnalyticsEvent('word_submission_failed', {
         reason: 'invalid_composition',
@@ -771,6 +785,9 @@ export default function WordflowerGame() {
         outerLetters: gameData.outerLetters,
         currentTime: getElapsedTime()
       })
+      setTimeout(() => {
+        setCurrentWord("")
+      }, 1000)
       toast.error("Word does not meet requirements")
       return
     }

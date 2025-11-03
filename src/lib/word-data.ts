@@ -14,11 +14,15 @@ export const GAME_DATA = {
   words: [] as WordHints[],
 }
 
+export function hasCentralLetter(word: string, centerLetter: string): boolean {
+  const upperWord = word.toUpperCase()
+  if (!upperWord.includes(centerLetter.toUpperCase())) return false
+  return true
+}
+
 export function isValidWord(word: string, centerLetter: string, outerLetters: string[]): boolean {
   const upperWord = word.toUpperCase()
   const allLetters = [centerLetter, ...outerLetters].map((l) => l.toUpperCase())
-
-  if (!upperWord.includes(centerLetter.toUpperCase())) return false
 
   for (const letter of upperWord) {
     if (!allLetters.includes(letter)) return false
