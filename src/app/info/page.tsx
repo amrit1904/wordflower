@@ -34,16 +34,15 @@ export default function ExperimentInfoPage() {
                     </p>
                     <br />
                     <p>
-                        Through this word game, we aim to study cognition. Accordingly, please do not feel
-                        pressured to do well in the game. Our goal is not to judge you or your playing skills, but
-                        rather to understand how you, and other participants, think, form patterns, recall words
+                        Through this word game, we aim to study cognition. Our goal is not to judge you or your playing skills, but
+                        rather to understand how people form patterns, recall words
                         and use techniques or strategies to help in these tasks. Participation in this study is
-                        entirely voluntary, and you may withdraw from the experiment at any time.
+                        entirely voluntary, and you may withdraw from the experiment at any time. Please do not feel
+                        pressured to do well in the game.
                     </p>
                     <br />
                     <p>
-                        Participation in this study entails playing a round of the Wordflower game and answering
-                        brief surveys before and after the session. The total duration for playing the game is{" "}
+                       You will now play a round of the Wordflower game. <strong>Please play this game on your own and do not use any external resources.</strong> Please answer brief surveys before and after the session. The total duration for playing the game is{" "}
                         <strong>30 minutes</strong>. Since the timer cannot be paused, we recommend that you set
                         aside time accordingly, as breaks in between will not be possible.
                     </p>
