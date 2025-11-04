@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
+import Image from "next/image"
 
 export default function SignInPage() {
   const [userId, setUserId] = useState("")
@@ -29,17 +30,17 @@ export default function SignInPage() {
         document.cookie = `wordflower_user_id=${localUserId}; path=/; max-age=31536000` // 1 year
       }
     }
-    
+
     // Sync on mount and when localStorage changes
     syncCookie()
     window.addEventListener('storage', syncCookie)
-    
+
     return () => window.removeEventListener('storage', syncCookie)
   }, [])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!userId.trim()) {
       toast.error("Please enter your user ID")
       return
@@ -60,12 +61,12 @@ export default function SignInPage() {
       if (result.isValid) {
         // Store user ID in localStorage
         localStorage.setItem('wordflower_user_id', userId.trim())
-        
+
         // Set cookie for middleware
         document.cookie = `wordflower_user_id=${userId.trim()}; path=/; max-age=31536000`
-        
+
         toast.success("Successfully signed in!")
-        
+
         // Redirect to home page
         router.push('/')
       } else {
@@ -88,7 +89,15 @@ export default function SignInPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">🌻 Wordflower</h1>
+          <div className="flex justify-center">
+            <Image
+              src="/ashoka_logo.png"
+              alt="Ashoka University Logo"
+              width={300}
+              height={300}
+              className="rounded-md"
+            />
+          </div>
           <p className="text-muted-foreground">Sign in to continue</p>
         </div>
 
@@ -110,9 +119,9 @@ export default function SignInPage() {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading || !userId.trim()}
             >
               {isLoading ? "Signing in..." : "Sign In"}
@@ -123,8 +132,8 @@ export default function SignInPage() {
             <p className="text-sm text-muted-foreground mb-3">
               Don't have a user ID?
             </p>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleRequestAccess}
               className="w-full"
             >
