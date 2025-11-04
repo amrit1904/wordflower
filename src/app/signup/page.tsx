@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
 import { LanguageSelector } from "@/components/ui/language-selector"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Image from "next/image"
 
 
 interface SignUpForm {
@@ -172,7 +173,15 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl font-bold mb-2">🌻 Wordflower</h1>
+          <div className="flex justify-center">
+            <Image
+              src="/ashoka_logo.png"
+              alt="Ashoka University Logo"
+              width={200}
+              height={200}
+              className="rounded-md"
+            />
+          </div>
           <p className="text-muted-foreground">Request Access to Study</p>
         </div>
 

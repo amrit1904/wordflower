@@ -68,7 +68,7 @@ export default function ExperimentInfoPage() {
 
                     <p>
                         If you have any questions, feedback, or suggestions, please feel free to reach out to us
-                        at amrit.singh_ug25@ashoka.edu.in and/or  vansh.bothra_ug25@ashoka.edu.in.
+                        at amrit.singh_ug25@ashoka.edu.in and/or vansh.bothra_ug25@ashoka.edu.in.
                     </p>
                     <br />
                     <p>
