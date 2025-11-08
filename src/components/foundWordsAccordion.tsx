@@ -33,7 +33,7 @@ export default function FoundWordsAccordion({ foundWords, totalWords }: FoundWor
                                     key={index}
                                     className="px-2 py-1 rounded text-sm bg-gray-200 dark:bg-gray-700 text-muted-foreground"
                                 >
-                                    {word}
+                                    {word.toUpperCase()}
                                 </span>
                             ))}
                         </div>

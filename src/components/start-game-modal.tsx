@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Loader2 } from "lucide-react"
+import { useState } from "react"
 
 interface SavedGameState {
   gameId: string
@@ -20,7 +21,7 @@ interface StartGameModalProps {
   onOpenChange: (open: boolean) => void
   savedGame: SavedGameState | null
   onStartNewGame: () => void
-  onResumeGame: (savedGame: SavedGameState) => void
+  onResumeGame: (savedGame: SavedGameState) => Promise<void>
   formatTime: (seconds: number) => string
   isStartingGame?: boolean
 }
@@ -34,6 +35,19 @@ export function StartGameModal({
   formatTime,
   isStartingGame = false
 }: StartGameModalProps) {
+  const [isResuming, setIsResuming] = useState(false)
+
+  const handleResumeGame = async () => {
+    if (!savedGame) return
+    
+    setIsResuming(true)
+    try {
+      await onResumeGame(savedGame)
+    } finally {
+      setIsResuming(false)
+    }
+  }
+
   // Format elapsed time for saved game display
   const formatElapsedTime = (remainingSeconds: number) => {
     const elapsedSeconds = 30 * 60 - remainingSeconds
@@ -52,10 +66,11 @@ export function StartGameModal({
           <div>
             <h4 className="font-semibold mb-2">How to Play:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Play this game on your own and do not use any external resources</li>
               <li>Create as many words as you can using the available letters</li>
               <li>Each word must contain the center letter and be at least 4 letters long</li>
               <li>You can repeat letters as needed</li>
-              <li>Look for pangrams - words that use all the letters!</li>
+              <li>Each game has atleast one pangram - words that use all the letters!</li>
             </ul>
           </div>
           
@@ -95,11 +110,18 @@ export function StartGameModal({
                 )}
               </Button>
               <Button 
-                onClick={() => onResumeGame(savedGame)} 
+                onClick={handleResumeGame}
                 className="flex-1"
-                disabled={isStartingGame}
+                disabled={isStartingGame || isResuming}
               >
-                Resume Game
+                {isResuming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Checking...
+                  </>
+                ) : (
+                  "Resume Game"
+                )}
               </Button>
             </>
           ) : (
