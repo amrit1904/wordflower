@@ -34,6 +34,7 @@ export function Flower({ centerLetter, outerLetters, currentWord, onLetterClick 
           "transition-all duration-200",
           "hover:scale-110 active:scale-95",
           "focus:outline-none focus:ring-4 focus:ring-ring",
+          "select-none"
         )}
       >
         {centerLetter}
@@ -53,6 +54,7 @@ export function Flower({ centerLetter, outerLetters, currentWord, onLetterClick 
             "transition-all duration-200",
             "hover:scale-110 active:scale-95",
             "focus:outline-none focus:ring-4 focus:ring-ring",
+            "select-none"
           )}
         >
           {letter}

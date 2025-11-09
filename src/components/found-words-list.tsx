@@ -6,9 +6,10 @@ import { CheckCircle2 } from "lucide-react"
 export interface FoundWordsListProps {
   foundWords: string[]
   totalWords: number
+  pangrams?: string[] // Optional array of pangram words
 }
 
-export function FoundWordsList({ foundWords, totalWords }: FoundWordsListProps) {
+export function FoundWordsList({ foundWords, totalWords, pangrams = [] }: FoundWordsListProps) {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -19,18 +20,23 @@ export function FoundWordsList({ foundWords, totalWords }: FoundWordsListProps) 
         <div className="text-sm font-medium text-muted-foreground">
           {foundWords.length} / {totalWords}
         </div>
-      </div>
-
+      </div>      
       {foundWords.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">No words found yet. Start playing!</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {foundWords.map((word, index) => (
+          {[...foundWords]
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+            .map((word, index) => (
             <span
               key={index}
-              className={'px-2 py-1 rounded text-sm bg-gray-200 dark:bg-gray-700 text-muted-foreground'}
+              className={`px-2 py-1 rounded text-sm select-none ${
+                pangrams.includes(word)
+                  ? 'bg-gradient-to-r from-yellow-300 to-yellow-400 text-yellow-900 border border-yellow-500 shadow-md font-bold'
+                  : 'bg-gray-200 dark:bg-gray-700 text-muted-foreground'
+              }`}
             >
-              {word.toUpperCase()}
+              {word.toUpperCase()}              
             </span>
           ))}
         </div>

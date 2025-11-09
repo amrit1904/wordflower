@@ -28,6 +28,7 @@ export interface GameData {
 interface SavedGameState {
   gameId: string
   foundWords: string[]
+  foundPangrams?: string[] // Optional for backward compatibility
   // currentHintWordIndex: number
   // hintLevel: number
   timer: number
@@ -71,6 +72,7 @@ export default function WordflowerGame() {
   const isMobile = useMediaQuery("(max-width: 1025px)")
   const [currentWord, setCurrentWord] = useState("")
   const [foundWords, setFoundWords] = useState<string[]>([])
+  const [foundPangrams, setFoundPangrams] = useState<string[]>([])
   // const [hintLevel, setHintLevel] = useState(0)
   // const [currentHintWordIndex, setCurrentHintWordIndex] = useState(0)
   // const [viewedHintsIndex, setViewedHintsIndex] = useState<number[]>([])
@@ -205,29 +207,6 @@ export default function WordflowerGame() {
     }
   }, [gameData?.gameId, userId])
 
-  // Helper function to update metadata with current timer value
-  // const updateGameMetadataWithCurrentTime = useCallback(async () => {
-  //   if (!gameId) return
-
-  //   try {
-  //     await fetch('/api/analytics', {
-  //       method: 'PATCH',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         gameId,
-  //         gameMetadata: {
-  //           totalWords: validWords.length,
-  //           wordsFound: foundWords.length,
-  //           totalTime: timer,
-  //           gameState
-  //         }
-  //       })
-  //     })
-  //   } catch (error) {
-  //     console.error('Failed to update game metadata:', error)
-  //   }
-  // }, [gameId, validWords.length, foundWords.length, timer, gameState])
-
   // localStorage functions
   const saveGameToStorage = useCallback(() => {
     if (typeof window === "undefined" || !gameData || gameState === 'not-started') return
@@ -235,6 +214,7 @@ export default function WordflowerGame() {
     const saveData: SavedGameState = {
       gameId: gameData.gameId,
       foundWords,
+      foundPangrams: foundPangrams,
       // currentHintWordIndex,
       // hintLevel,
       timer,
@@ -252,7 +232,7 @@ export default function WordflowerGame() {
     } catch (error) {
       console.error('Failed to save game:', error)
     }
-  }, [gameData, foundWords, /* currentHintWordIndex, hintLevel, */ timer, gameState, currentWord])
+  }, [gameData, foundWords, foundPangrams, /* currentHintWordIndex, hintLevel, */ timer, gameState, currentWord])
 
   const loadGameFromStorage = useCallback((): SavedGameState | null => {
     if (typeof window === "undefined") return null
@@ -357,10 +337,10 @@ export default function WordflowerGame() {
     
     if (mins > 0) {
       // Show only minutes when more than 1 minute remaining
-      return `${mins}m`
+      return `${mins} mins remaining`
     } else {
       // Show seconds when less than 1 minute remaining
-      return `${secs}s`
+      return `${secs} secs remaining`
     }
   }
 
@@ -439,6 +419,7 @@ export default function WordflowerGame() {
       setShowStartModal(false)
       setTimer(30 * 60) // Reset to 30 minutes
       setFoundWords([])
+      setFoundPangrams([])
       setCurrentWord("")
       // setHintLevel(0)
       // setCurrentHintWordIndex(0)
@@ -549,6 +530,7 @@ export default function WordflowerGame() {
     setShowEndConfirmModal(false)
     setCurrentWord("")
     setFoundWords([])
+    setFoundPangrams([])
     // setHintLevel(0)
     // setCurrentHintWordIndex(0)
     setTimer(30 * 60) // Reset to 30 minutes
@@ -608,6 +590,7 @@ export default function WordflowerGame() {
       pangramCount: saved.pangramCount
     })
     setFoundWords(saved.foundWords)
+    setFoundPangrams(saved.foundPangrams || []) // Handle backward compatibility
     // setCurrentHintWordIndex(saved.currentHintWordIndex)
     // setHintLevel(saved.hintLevel)
     setTimer(saved.timer)
@@ -744,7 +727,7 @@ export default function WordflowerGame() {
         wordLength: currentWord.length,
         currentTime: getElapsedTime()
       })
-      toast.error("Word too short")
+      toast.error("Words must be at least 4 letters long")
       return
     }
 
@@ -756,7 +739,7 @@ export default function WordflowerGame() {
         attemptedWord: lowerWord,
         currentTime: getElapsedTime()
       })
-      toast.error("Word already found")
+      toast.error("You've already found this word!")
       setTimeout(() => {
         setCurrentWord("")
       }, 1000)
@@ -788,7 +771,7 @@ export default function WordflowerGame() {
       setTimeout(() => {
         setCurrentWord("")
       }, 1000)
-      toast.error("Word does not meet requirements")
+      toast.error("Word contains letters not in the puzzle")
       return
     }
 
@@ -808,6 +791,11 @@ export default function WordflowerGame() {
 
       if (result.isValid) {
         setFoundWords((prev) => [...prev, lowerWord])
+        
+        // Track pangrams separately
+        if (result.isPangram) {
+          setFoundPangrams(prev => [...prev, lowerWord])
+        }
 
         logAnalyticsEvent('word_found', {
           word: lowerWord,
@@ -823,9 +811,9 @@ export default function WordflowerGame() {
         // }
 
         const encouragements = result.isPangram
-          ? ["Pangram! Amazing! 🎉", "Incredible pangram! 🌟"]
-          : ["Great job!", "Well done!", "Excellent!", "Amazing!", "Fantastic!"]
-        toast.success(`${encouragements[Math.floor(Math.random() * encouragements.length)]} ✓`)
+          ? ["🎉 Pangram! Amazing!", "🌟 Incredible pangram!", "✨ Perfect pangram!"]
+          : ["✅ Great job!", "🌻 Well done!", "⭐ Excellent!", "🎯 Amazing!", "🏆 Fantastic!"]
+        toast.success(`${encouragements[Math.floor(Math.random() * encouragements.length)]}`)
         setCurrentWord("")
       } else {
         logAnalyticsEvent('word_submission_failed', {
@@ -833,7 +821,7 @@ export default function WordflowerGame() {
           attemptedWord: lowerWord,
           currentTime: getElapsedTime()
         })
-        toast.error("Word not in word list")
+        toast.error("Word not found in dictionary")
         setTimeout(() => {
           setCurrentWord("")
         }, 1000)
@@ -844,7 +832,7 @@ export default function WordflowerGame() {
     } finally {
       setIsSubmittingWord(false)
     }
-  }, [currentWord, foundWords, gameData, gameState, logAnalyticsEvent, getElapsedTime])
+  }, [currentWord, foundWords, foundPangrams, gameData, gameState, logAnalyticsEvent, getElapsedTime])
 
   // const handleRequestHint = () => {
   //   if (hintLevel < 4) {
@@ -928,7 +916,7 @@ export default function WordflowerGame() {
             </div>
 
             {!isMobile && <div className="flex flex-col gap-4">
-              <FoundWordsList foundWords={foundWords} totalWords={gameData.wordCount} />
+              <FoundWordsList foundWords={foundWords} totalWords={gameData.wordCount} pangrams={foundPangrams} />
               <GameRules />
               {/* <Card className="p-6 mb-6">
                 <HintSystem
