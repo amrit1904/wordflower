@@ -27,6 +27,13 @@ interface GameSession {
     willReturn: boolean
     submittedAt: Date
   }
+  results?: {
+    foundWords: string[],
+    allWords?: string[],
+    timer: number,
+    gameData: any,
+    timestamp: Date
+  }
 }
 
 // User analytics document interface (new structure)
