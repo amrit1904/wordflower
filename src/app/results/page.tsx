@@ -29,12 +29,20 @@ interface FeedbackForm {
   satisfaction: number
   mostDifficult: string
   willReturn: boolean
+  happyMoments?: string
+  frustratingMoments?: string
+  improvementSuggestion?: string
+  willReturnReason?: string
 }
 
 interface GameFeedback {
   satisfaction: number // 1-5 scale
   mostDifficult: string
   willReturn: boolean
+  happyMoments?: string
+  frustratingMoments?: string
+  improvementSuggestion?: string
+  willReturnReason?: string
   submittedAt: Date
 }
 
@@ -53,7 +61,11 @@ export default function ResultsPage() {
   const [feedbackForm, setFeedbackForm] = useState<FeedbackForm>({
     satisfaction: 0,
     mostDifficult: '',
-    willReturn: true
+    willReturn: true,
+    happyMoments: '',
+    frustratingMoments: '',
+    improvementSuggestion: '',
+    willReturnReason: ''
   })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
@@ -188,6 +200,10 @@ export default function ResultsPage() {
       satisfaction: feedbackForm.satisfaction,
       mostDifficult: feedbackForm.mostDifficult.trim(),
       willReturn: feedbackForm.willReturn,
+      happyMoments: feedbackForm.happyMoments?.trim(),
+      frustratingMoments: feedbackForm.frustratingMoments?.trim(),
+      improvementSuggestion: feedbackForm.improvementSuggestion?.trim(),
+      willReturnReason: feedbackForm.willReturnReason?.trim(),
       submittedAt: new Date()
     }
 
@@ -299,32 +315,77 @@ export default function ResultsPage() {
                 </div>
               </div>
 
-              {/* Most Difficult Question */}
+              {/* Thinking Process Question */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium" htmlFor="mostDifficult">
-                    What was the most difficult part for you? <span className="text-red-500">*</span>
+                  <label className="text-sm font-medium" htmlFor="thinkingProcess">
+                    Could you walk us through what was happening in your head while you were trying to find words? <span className="text-red-500">*</span>
                   </label>
                   <div className="text-xs text-muted-foreground text-right">
-                    {feedbackForm.mostDifficult.length}/200
+                    {feedbackForm.mostDifficult.length}/400
                   </div>
                 </div>
                 <textarea
-                  id="mostDifficult"
+                  id="thinkingProcess"
                   value={feedbackForm.mostDifficult}
                   onChange={(e) => setFeedbackForm(prev => ({ ...prev, mostDifficult: e.target.value }))}
-                  placeholder="E.g., Finding longer words, understanding the rules, letter combinations..."
+                  placeholder="Describe your thought process, strategies, and what went through your mind while playing..."
+                  className="w-full p-3 border rounded-lg resize-none h-24 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={400}
+                />
+              </div>
+
+              {/* Happy/Clever Moments */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium" htmlFor="happyMoments">
+                  Was there any moment where you felt genuinely happy, clever, or satisfied while playing? Describe what happened.
+                </label>
+                <textarea
+                  id="happyMoments"
+                  value={feedbackForm.happyMoments || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, happyMoments: e.target.value }))}
+                  placeholder="Describe moments of satisfaction, cleverness, or happiness during the game..."
                   className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                  maxLength={200}
+                  maxLength={300}
+                />
+              </div>
+
+              {/* Frustrating Moments */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium" htmlFor="frustratingMoments">
+                  Was there any moment that felt unfair, frustrating, or demotivating? What happened and why did it bother you?
+                </label>
+                <textarea
+                  id="frustratingMoments"
+                  value={feedbackForm.frustratingMoments || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, frustratingMoments: e.target.value }))}
+                  placeholder="Describe any frustrating or unfair moments and what caused them..."
+                  className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={300}
+                />
+              </div>
+
+              {/* Improvement Suggestion */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium" htmlFor="improvementSuggestion">
+                  If you could change one thing about the game to make it more fun or less annoying for you personally, what would you change first?
+                </label>
+                <textarea
+                  id="improvementSuggestion"
+                  value={feedbackForm.improvementSuggestion || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, improvementSuggestion: e.target.value }))}
+                  placeholder="What would make this game more enjoyable for you?"
+                  className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={300}
                 />
               </div>
 
               {/* Will Return Question */}
               <div className="space-y-3">
                 <label className="text-sm font-medium">
-                  Will you come back to play again?
+                  Would you play Wordflower again on your own, without being asked to? Why or why not?
                 </label>
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center mb-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -346,6 +407,14 @@ export default function ResultsPage() {
                     <span className="text-sm">Probably not</span>
                   </label>
                 </div>
+                <textarea
+                  id="willReturnReason"
+                  value={feedbackForm.willReturnReason || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, willReturnReason: e.target.value }))}
+                  placeholder="Please explain your reasoning..."
+                  className="w-full p-3 border rounded-lg resize-none h-16 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={200}
+                />
               </div>
 
               <Button 
@@ -428,6 +497,12 @@ export default function ResultsPage() {
                     </div>
                   </div>
                 )}
+                
+                <div className="pt-4 text-center">
+                  <Button onClick={handleReturnToGame} size="lg" className="w-full">
+                    Play Again
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
