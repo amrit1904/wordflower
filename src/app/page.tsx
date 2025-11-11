@@ -338,10 +338,10 @@ export default function WordflowerGame() {
     
     if (mins > 0) {
       // Show only minutes when more than 1 minute remaining
-      return `${mins} mins remaining`
+      return `${mins} minutes remaining`
     } else {
       // Show seconds when less than 1 minute remaining
-      return `${secs} secs remaining`
+      return `${secs} sec remaining`
     }
   }
 

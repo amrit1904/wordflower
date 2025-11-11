@@ -29,12 +29,12 @@ export function EndGameConfirmModal({
             Are you sure you want to end the game early?
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
           <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
             <div className="text-sm">
               <div className="font-medium text-orange-800 dark:text-orange-200 mb-1">
-                Time Remaining: {formatTime(timer)}
+                You have <strong>{formatTime(timer)}</strong>
               </div>
               <div className="text-orange-700 dark:text-orange-300">
                 You still have time left to find more words. Are you sure you want to finish now?
@@ -44,11 +44,11 @@ export function EndGameConfirmModal({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button onClick={onCancel} variant="outline">
-            Continue Playing
-          </Button>
-          <Button onClick={onConfirm} variant="destructive">
+          <Button onClick={onConfirm} variant="secondaryDestructive">
             End Game
+          </Button>
+          <Button onClick={onCancel}>
+            Continue Playing
           </Button>
         </DialogFooter>
       </DialogContent>

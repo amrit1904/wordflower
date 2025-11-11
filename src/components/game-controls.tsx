@@ -30,17 +30,19 @@ export function GameControls({
 
   return (
     <div className="flex justify-between items-center mb-4">
-      <div className="flex-1 text-center">
-        <h1 className="text-5xl font-bold text-foreground mb-2">🌻 Wordflower</h1>
-      </div>
 
       <div className="flex-1 flex justify-end items-center gap-4">
         {gameState === 'playing' && (
-          <div className="text-center">
+          <div className="flex flex-row justify-end gap-4 text-center items-center">
+                        <div className={`text-lg font-mono font-bold ${timer <= 60 ? 'text-red-500' : 'text-foreground'}`}>
+              {formatTime(timer)}
+              {!isTabVisible && (
+                <span className="text-sm text-orange-500 block">⏸️ Paused</span>
+              )}
+            </div>  
             <Button 
               onClick={onEndGame} 
-              variant="destructive" 
-              size="sm"
+              variant="secondaryDestructive" 
               disabled={isEndingGame}
             >
               {isEndingGame ? (
@@ -52,12 +54,7 @@ export function GameControls({
                 "End Game"
               )}
             </Button>
-            <div className={`text-lg font-mono font-bold ${timer <= 60 ? 'text-red-500' : 'text-foreground'}`}>
-              {formatTime(timer)}
-              {!isTabVisible && (
-                <span className="text-sm text-orange-500 block">⏸️ Paused</span>
-              )}
-            </div>            
+          
           </div>
         )}
       </div>
