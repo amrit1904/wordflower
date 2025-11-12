@@ -17,8 +17,9 @@ export function GameActions({
   isSubmittingWord = false
 }: GameActionsProps) {
   return (
-    <div className="mt-8 text-center flex gap-2 justify-center">
+    <div className="mt-8 text-center flex gap-4 justify-center">
       <Button
+        className="select-none"
         onClick={onSubmit}
         size="lg"
         disabled={currentWord.length === 0 || gameState !== 'playing' || isSubmittingWord}

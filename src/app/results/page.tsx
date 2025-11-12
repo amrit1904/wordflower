@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"  
 import { Progress } from "@/components/ui/progress"
 import { Star } from "lucide-react"
 import { toast } from "sonner"
@@ -17,87 +17,149 @@ interface GameData {
   pangramCount: number
 }
 
+interface GameResults {
+  foundWords: string[]
+  allWords?: string[]
+  timer: number
+  gameData: any
+  timestamp: Date
+}
+
 interface FeedbackForm {
   satisfaction: number
   mostDifficult: string
   willReturn: boolean
+  happyMoments?: string
+  frustratingMoments?: string
+  improvementSuggestion?: string
+  willReturnReason?: string
 }
 
 interface GameFeedback {
   satisfaction: number // 1-5 scale
   mostDifficult: string
   willReturn: boolean
+  happyMoments?: string
+  frustratingMoments?: string
+  improvementSuggestion?: string
+  willReturnReason?: string
   submittedAt: Date
 }
 
 export default function ResultsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   
-  const [foundWords, setFoundWords] = useState<string[]>([])
-  const [allWords, setAllWords] = useState<string[]>([])
-  const [gameData, setGameData] = useState<GameData | null>(null)
-  const [timer, setTimer] = useState(0)
+  // State management
   const [userId, setUserId] = useState<string | null>(null)
   const [gameId, setGameId] = useState<string | null>(null)
-  const [isAlreadyCompleted, setIsAlreadyCompleted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
-  // Feedback form state
+  // Feedback state
+  const [existingFeedback, setExistingFeedback] = useState<GameFeedback | null>(null)
   const [feedbackForm, setFeedbackForm] = useState<FeedbackForm>({
     satisfaction: 0,
     mostDifficult: '',
-    willReturn: true
+    willReturn: true,
+    happyMoments: '',
+    frustratingMoments: '',
+    improvementSuggestion: '',
+    willReturnReason: ''
   })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  
+  // Results state
+  const [gameResults, setGameResults] = useState<GameResults | null>(null)
 
-  // Function to clean up results data and return to main page
+  // Function to return to main page
   const handleReturnToGame = () => {
-    // Clean up results data
-    localStorage.removeItem('wordflower_results')
     router.push('/')
   }
 
-  // Initialize data from localStorage
+  // Initialize data and check feedback status
   useEffect(() => {
-    // Check URL params first to see if this is a redirect for already completed game
-    const urlParams = new URLSearchParams(window.location.search)
-    const alreadyCompleted = urlParams.get('completed') === 'true'
-
-    const resultsData = localStorage.getItem('wordflower_results')
-    if (resultsData) {
+    const initializePage = async () => {
       try {
-        const data = JSON.parse(resultsData)
-        
-        // Check if this is marked as already completed (URL param or localStorage flag)
-        setIsAlreadyCompleted(alreadyCompleted || data.isAlreadyCompleted || false)
-        
-        setFoundWords(data.foundWords || [])
-        setAllWords(data.allWords || [])
-        setGameData(data.gameData)
-        setTimer(data.timer || 0)
-        setGameId(data.gameId)
-        
-        // Optional: Clean up old data (older than 1 hour)
-        const oneHour = 60 * 60 * 1000
-        if (data.timestamp && Date.now() - data.timestamp > oneHour) {
-          localStorage.removeItem('wordflower_results')
+        // Get game ID from URL params
+        const gameIdParam = searchParams.get('gameid')
+        if (!gameIdParam) {
+          setError('No game ID provided')
+          setLoading(false)
+          return
         }
+
+        // Get user ID from localStorage
+        const userIdFromStorage = localStorage.getItem('wordflower_user_id')
+        if (!userIdFromStorage) {
+          setError('User ID not found')
+          setLoading(false)
+          return
+        }
+
+        setGameId(gameIdParam)
+        setUserId(userIdFromStorage)
+
+        // Check if feedback already exists for this game
+        await checkExistingFeedback(userIdFromStorage, gameIdParam)
+        
       } catch (error) {
-        console.error('Failed to parse results data:', error)
-        // Redirect back to main page if data is corrupted
-        handleReturnToGame()
-        return
+        console.error('Initialization error:', error)
+        setError('Failed to initialize page')
+      } finally {
+        setLoading(false)
       }
-    } else {
-      // No results data found, redirect to main page
-      handleReturnToGame()
-      return
     }
 
-    // Get user ID
-    const id = localStorage.getItem('wordflower_user_id')
-    setUserId(id)
-  }, [])
+    initializePage()
+  }, [searchParams])
+
+  // Check if feedback exists for this game
+  const checkExistingFeedback = async (userId: string, gameId: string) => {
+    try {
+      const response = await fetch(`/api/analytics/feedback?userId=${userId}&gameId=${gameId}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.feedback) {
+          setExistingFeedback(data.feedback)
+          setFeedbackSubmitted(true)
+          // If feedback exists, fetch the results
+          await fetchGameResults(userId, gameId)
+        }
+      } else if (response.status === 404) {
+        // No feedback found - this is expected for new games
+        setExistingFeedback(null)
+      } else {
+        throw new Error(`HTTP ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Error checking feedback:', error)
+      // Don't set error state here as missing feedback is expected
+    }
+  }
+
+  // Fetch game results from database
+  const fetchGameResults = async (userId: string, gameId: string) => {
+    try {
+      const response = await fetch(`/api/analytics/results?userId=${userId}&gameId=${gameId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const results = await response.json()
+        setGameResults(results)
+      } else {
+        console.error('Failed to fetch results:', response.status)
+        setError('Failed to load game results')
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error)
+      setError('Failed to load game results')
+    }
+  }
 
   // Submit feedback to analytics
   const submitFeedback = async (feedback: GameFeedback) => {
@@ -138,6 +200,10 @@ export default function ResultsPage() {
       satisfaction: feedbackForm.satisfaction,
       mostDifficult: feedbackForm.mostDifficult.trim(),
       willReturn: feedbackForm.willReturn,
+      happyMoments: feedbackForm.happyMoments?.trim(),
+      frustratingMoments: feedbackForm.frustratingMoments?.trim(),
+      improvementSuggestion: feedbackForm.improvementSuggestion?.trim(),
+      willReturnReason: feedbackForm.willReturnReason?.trim(),
       submittedAt: new Date()
     }
 
@@ -146,6 +212,13 @@ export default function ResultsPage() {
     if (success) {
       toast.success("Thank you for your feedback!")
       setFeedbackSubmitted(true)
+      setExistingFeedback(feedback)
+      
+      // Now fetch the results since feedback is submitted
+      if (userId && gameId) {
+        await fetchGameResults(userId, gameId)
+      }
+      
       // Clear saved game
       localStorage.removeItem('wordflower_game')
     } else {
@@ -167,12 +240,23 @@ export default function ResultsPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Redirect if no game data
-  if (!gameId || !gameData) {
+  // Show loading state
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">No game data found</h1>
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error || !gameId || !userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">{error || "Invalid game session"}</h1>
           <Button onClick={handleReturnToGame}>Return to Game</Button>
         </div>
       </div>
@@ -185,134 +269,164 @@ export default function ResultsPage() {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">🌻 Wordflower</h1>
           <h2 className="text-2xl font-semibold">
-            {isAlreadyCompleted ? "Thank You!" : "Game Results"}
+            {feedbackSubmitted ? "Game Results" : "Game Feedback"}
           </h2>
         </header>
 
-        {isAlreadyCompleted ? (
-          // Show only thank you message for already completed games
-          <Card className="p-8 text-center max-w-2xl mx-auto">
+        {!feedbackSubmitted ? (
+          // Show feedback form if no feedback exists
+          <Card className="p-8 max-w-2xl mx-auto">
+            <h3 className="text-xl font-semibold mb-6 text-center">🌻 Please Share Your Feedback</h3>
             <div className="space-y-6">
-              <div className="text-6xl mb-4">🎉</div>
-              <h3 className="text-2xl font-semibold">Thank You for Participating!</h3>
-              <p className="text-lg text-muted-foreground">
-                You have already completed this game. Thank you for your continued interest in our study!
+              <p className="text-muted-foreground text-center">
+                Before viewing your results, please help us improve your experience by sharing your thoughts about this game.
               </p>
-              <p className="text-muted-foreground">
-                Your previous participation and feedback are valuable to our research.
-              </p>
-              <div className="pt-4">
-                <Button onClick={handleReturnToGame} size="lg">
-                  Return to Game
-                </Button>
+            
+              {/* Satisfaction Rating */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">
+                  How satisfied are you with your performance? <span className="text-red-500">*</span>
+                </label>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setFeedbackForm(prev => ({ ...prev, satisfaction: rating }))}
+                      className={`p-2 rounded-lg transition-colors ${
+                        feedbackForm.satisfaction >= rating
+                          ? 'text-yellow-500'
+                          : 'text-gray-300 hover:text-yellow-400'
+                      }`}
+                    >
+                      <Star 
+                        size={28} 
+                        fill={feedbackForm.satisfaction >= rating ? 'currentColor' : 'none'}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <div className="text-center text-xs text-muted-foreground">
+                  {feedbackForm.satisfaction === 1 && "Very Dissatisfied"}
+                  {feedbackForm.satisfaction === 2 && "Dissatisfied"}
+                  {feedbackForm.satisfaction === 3 && "Neutral"}
+                  {feedbackForm.satisfaction === 4 && "Satisfied"}
+                  {feedbackForm.satisfaction === 5 && "Very Satisfied"}
+                </div>
               </div>
+
+              {/* Thinking Process Question */}
+              <div className="space-y-3 flex flex-col gap-1">
+                  <label className="text-sm font-medium" htmlFor="thinkingProcess">
+                    Could you walk us through what was happening in your head while you were trying to find words? <span className="text-red-500">*</span>
+                  </label>
+                <textarea
+                  id="thinkingProcess"
+                  value={feedbackForm.mostDifficult}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, mostDifficult: e.target.value }))}
+                  placeholder="Describe your thought process, strategies, and what went through your mind while playing..."
+                  className="w-full p-3 border rounded-lg resize-none h-24 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={400}
+                />
+              </div>
+
+              {/* Happy/Clever Moments */}
+              <div className="space-y-3 flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="happyMoments">
+                  Was there any moment where you felt genuinely happy, clever, or satisfied while playing? Describe what happened.
+                </label>
+                <textarea
+                  id="happyMoments"
+                  value={feedbackForm.happyMoments || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, happyMoments: e.target.value }))}
+                  placeholder="Describe moments of satisfaction, cleverness, or happiness during the game..."
+                  className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={300}
+                />
+              </div>
+
+              {/* Frustrating Moments */}
+              <div className="space-y-3 flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="frustratingMoments">
+                  Was there any moment that felt unfair, frustrating, or demotivating? What happened and why did it bother you?
+                </label>
+                <textarea
+                  id="frustratingMoments"
+                  value={feedbackForm.frustratingMoments || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, frustratingMoments: e.target.value }))}
+                  placeholder="Describe any frustrating or unfair moments and what caused them..."
+                  className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={300}
+                />
+              </div>
+
+              {/* Improvement Suggestion */}
+              <div className="space-y-3 flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="improvementSuggestion">
+                  If you could change one thing about the game to make it more fun or less annoying for you personally, what would you change first?
+                </label>
+                <textarea
+                  id="improvementSuggestion"
+                  value={feedbackForm.improvementSuggestion || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, improvementSuggestion: e.target.value }))}
+                  placeholder="What would make this game more enjoyable for you?"
+                  className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={300}
+                />
+              </div>
+
+              {/* Will Return Question */}
+              <div className="space-y-3 flex flex-col gap-1">
+                <label className="text-sm font-medium">
+                  Would you play Wordflower again on your own, without being asked to? Why or why not?
+                </label>
+                <div className="flex gap-4 justify-start mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="willReturn"
+                      checked={feedbackForm.willReturn === true}
+                      onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: true }))}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Yes, definitely!</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="willReturn"
+                      checked={feedbackForm.willReturn === false}
+                      onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: false }))}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Probably not</span>
+                  </label>
+                </div>
+                <textarea
+                  id="willReturnReason"
+                  value={feedbackForm.willReturnReason || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, willReturnReason: e.target.value }))}
+                  placeholder="Please explain your reasoning..."
+                  className="w-full p-3 border rounded-lg resize-none h-16 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                  maxLength={200}
+                />
+              </div>
+
+              <Button 
+                onClick={handleFeedbackSubmit}
+                disabled={!isFeedbackFormValid() || isSubmittingFeedback}
+                className="w-full"
+                size="lg"
+              >
+                {isSubmittingFeedback ? "Submitting..." : "Submit Feedback & View Results"}
+              </Button>
             </div>
           </Card>
-        ) : (
-          // Show full results and feedback for fresh completions
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Feedback Form - Left Side */}
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">🌻 Game Feedback</h3>
-              
-              {!feedbackSubmitted ? (
-                <div className="space-y-6">
-                  <p className="text-muted-foreground">
-                    Help us improve your experience! Please share your thoughts about this game.
-                  </p>
-                
-                {/* Satisfaction Rating */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">
-                    How satisfied are you with your performance? <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <button
-                        key={rating}
-                        type="button"
-                        onClick={() => setFeedbackForm(prev => ({ ...prev, satisfaction: rating }))}
-                        className={`p-2 rounded-lg transition-colors ${
-                          feedbackForm.satisfaction >= rating
-                            ? 'text-yellow-500'
-                            : 'text-gray-300 hover:text-yellow-400'
-                        }`}
-                      >
-                        <Star 
-                          size={28} 
-                          fill={feedbackForm.satisfaction >= rating ? 'currentColor' : 'none'}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                  <div className="text-center text-xs text-muted-foreground">
-                    {feedbackForm.satisfaction === 1 && "Very Dissatisfied"}
-                    {feedbackForm.satisfaction === 2 && "Dissatisfied"}
-                    {feedbackForm.satisfaction === 3 && "Neutral"}
-                    {feedbackForm.satisfaction === 4 && "Satisfied"}
-                    {feedbackForm.satisfaction === 5 && "Very Satisfied"}
-                  </div>
-                </div>
-
-                {/* Most Difficult Question */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium" htmlFor="mostDifficult">
-                    What was the most difficult part for you? <span className="text-red-500">*</span>
-                  </label>
-                  <div className="text-xs text-muted-foreground text-right">
-                    {feedbackForm.mostDifficult.length}/200
-                  </div>
-                  </div>
-                  <textarea
-                    id="mostDifficult"
-                    value={feedbackForm.mostDifficult}
-                    onChange={(e) => setFeedbackForm(prev => ({ ...prev, mostDifficult: e.target.value }))}
-                    placeholder="E.g., Finding longer words, understanding the rules, letter combinations..."
-                    className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                    maxLength={200}
-                  />
-                  
-                </div>
-
-                {/* Will Return Question */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">
-                    Will you come back to play again?
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="willReturn"
-                        checked={feedbackForm.willReturn === true}
-                        onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: true }))}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm">Yes, definitely!</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="willReturn"
-                        checked={feedbackForm.willReturn === false}
-                        onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: false }))}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm">Probably not</span>
-                    </label>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleFeedbackSubmit}
-                  disabled={!isFeedbackFormValid() || isSubmittingFeedback}
-                  className="w-full"
-                >
-                  {isSubmittingFeedback ? "Submitting..." : "Submit Feedback"}
-                </Button>
-              </div>
-            ) : (
+        ) : gameResults ? (
+          // Show results after feedback is submitted
+          <div className="grid lg:grid-cols-1 gap-8">
+            {/* Thank You Message - Left Side */}
+            {/* <Card className="p-6">
               <div className="text-center py-8">
                 <div className="text-6xl mb-4">🎉</div>
                 <h3 className="text-xl font-semibold mb-2">Thank You!</h3>
@@ -322,57 +436,81 @@ export default function ResultsPage() {
                 <p className="text-sm text-muted-foreground">
                   Your responses help us improve the game experience for future players.
                 </p>
-              </div>
-            )}
-          </Card>
-
-          {/* Game Results - Right Side */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">🎉 Game Complete!</h3>
-            <p className="text-muted-foreground mb-6">
-              Congratulations on completing your word-finding adventure!
-            </p>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1 text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{foundWords.length}/{gameData.wordCount}</div>
-                  <div className="text-sm text-muted-foreground">Words Found</div>
-                  <Progress value={gameData ? (foundWords.length / gameData.wordCount) * 100 : 0} />
-                </div>
-                <div className="text-center content-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{formatTime(timer)}</div>
-                  <div className="text-sm text-muted-foreground">Total Time</div>
+                <div className="pt-4">
+                  <Button onClick={handleReturnToGame} size="lg">
+                    Play Again
+                  </Button>
                 </div>
               </div>
+            </Card> */}
 
-              <div>
-                <h4 className="font-semibold mb-3">All Words</h4>
-                <div className="max-h-64 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                  <div className="flex flex-wrap gap-2">
-                    {allWords.map((word, index) => {
-                      const isFound = foundWords.some(
-                        (w) => w.trim().toLowerCase() === word.trim().toLowerCase()
-                      )
+            {/* Game Results - Right Side */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">🎉 Game Complete!</h3>
+              <p className="text-muted-foreground mb-6">
+                Congratulations on completing your word-finding adventure!
+              </p>
 
-                      return (
-                        <span
-                          key={index}
-                          className={`px-2 py-1 rounded text-sm ${isFound
-                            ? 'bg-gray-700 text-primary-foreground'
-                            : 'bg-gray-200 dark:bg-gray-700 text-muted-foreground'
-                            }`}
-                        >
-                          {word}
-                        </span>
-                      )
-                    })}
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1 text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">
+                      {gameResults.foundWords.length}/{gameResults.gameData?.wordCount || 'N/A'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Words Found</div>
+                    <Progress value={gameResults.gameData?.wordCount ? (gameResults.foundWords.length / gameResults.gameData.wordCount) * 100 : 0} />
+                  </div>
+                  <div className="text-center content-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{formatTime(gameResults.timer)}</div>
+                    <div className="text-sm text-muted-foreground">Total Time</div>
                   </div>
                 </div>
+
+                {gameResults.allWords && (
+                  <div>
+                    <h4 className="font-semibold mb-3">All Words</h4>
+                    <div className="max-h-64 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                      <div className="flex flex-wrap gap-2">
+                        {gameResults.allWords.map((word: string, index: number) => {
+                          const isFound = gameResults.foundWords.some(
+                            (w: string) => w.trim().toLowerCase() === word.trim().toLowerCase()
+                          )
+
+                          return (
+                            <span
+                              key={index}
+                              className={`px-2 py-1 rounded text-sm ${isFound
+                                ? 'bg-gray-700 text-primary-foreground'
+                                : 'bg-gray-200 dark:bg-gray-700 text-muted-foreground'
+                                }`}
+                            >
+                              {word}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* <div className="pt-4 text-center">
+                  <Button onClick={handleReturnToGame} size="lg" className="w-full">
+                    Play Again
+                  </Button>
+                </div> */}
               </div>
+            </Card>
+          </div>
+        ) : (
+          // Loading results state
+          <Card className="p-8 text-center max-w-2xl mx-auto">
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold">Loading your results...</h3>
+              <p className="text-muted-foreground">
+                Please wait while we prepare your game results.
+              </p>
             </div>
           </Card>
-          </div>
         )}
       </div>
       

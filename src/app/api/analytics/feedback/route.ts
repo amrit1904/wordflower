@@ -6,6 +6,10 @@ interface GameFeedback {
   satisfaction: number
   mostDifficult: string
   willReturn: boolean
+  happyMoments?: string
+  frustratingMoments?: string
+  improvementSuggestion?: string
+  willReturnReason?: string
   submittedAt: Date
 }
 
@@ -42,6 +46,10 @@ export async function POST(request: NextRequest) {
       satisfaction: feedback.satisfaction,
       mostDifficult: feedback.mostDifficult.trim(),
       willReturn: feedback.willReturn,
+      happyMoments: feedback.happyMoments?.trim(),
+      frustratingMoments: feedback.frustratingMoments?.trim(),
+      improvementSuggestion: feedback.improvementSuggestion?.trim(),
+      willReturnReason: feedback.willReturnReason?.trim(),
       submittedAt: new Date()
     }
 

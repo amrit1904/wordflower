@@ -13,11 +13,11 @@ export function GameRules() {
         <div className="space-y-2">
           <h4 className="font-medium">How to Play:</h4>
           <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-            <li>Play this game on your own and do not use any external resources</li>
+            <li>Play this game <strong>on your own</strong> and do not use any external resources</li>
             <li>Create words using the available letters</li>
             <li>Each word must contain the center letter and be at least 4 letters long</li>
             <li>You can repeat letters as needed</li>
-            <li>Each game has atleast one pangram - words that use all the letters!</li>
+            <li>Each game has atleast one <strong>pangram</strong> - words that use all the letters!</li>
           </ul>
         </div>
 
