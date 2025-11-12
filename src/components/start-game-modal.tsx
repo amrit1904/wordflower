@@ -64,7 +64,7 @@ export function StartGameModal({
         
         <div className="space-y-4">
           <div>
-            <h4 className="font-semibold mb-2">How to Play:</h4>
+            <h4 className="font-semibold">How to Play:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
               <li>Play this game on your own and do not use any external resources</li>
               <li>Create as many words as you can using the available letters</li>
@@ -94,7 +94,7 @@ export function StartGameModal({
         <DialogFooter className="gap-2">
           {savedGame ? (
             <>
-              <Button 
+              {/* <Button 
                 onClick={onStartNewGame} 
                 variant="outline" 
                 className="flex-1"
@@ -108,7 +108,7 @@ export function StartGameModal({
                 ) : (
                   "New Game"
                 )}
-              </Button>
+              </Button> */}
               <Button 
                 onClick={handleResumeGame}
                 className="flex-1"

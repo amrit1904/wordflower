@@ -316,15 +316,10 @@ export default function ResultsPage() {
               </div>
 
               {/* Thinking Process Question */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
+              <div className="space-y-3 flex flex-col gap-1">
                   <label className="text-sm font-medium" htmlFor="thinkingProcess">
                     Could you walk us through what was happening in your head while you were trying to find words? <span className="text-red-500">*</span>
                   </label>
-                  <div className="text-xs text-muted-foreground text-right">
-                    {feedbackForm.mostDifficult.length}/400
-                  </div>
-                </div>
                 <textarea
                   id="thinkingProcess"
                   value={feedbackForm.mostDifficult}
@@ -336,7 +331,7 @@ export default function ResultsPage() {
               </div>
 
               {/* Happy/Clever Moments */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col gap-1">
                 <label className="text-sm font-medium" htmlFor="happyMoments">
                   Was there any moment where you felt genuinely happy, clever, or satisfied while playing? Describe what happened.
                 </label>
@@ -351,7 +346,7 @@ export default function ResultsPage() {
               </div>
 
               {/* Frustrating Moments */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col gap-1">
                 <label className="text-sm font-medium" htmlFor="frustratingMoments">
                   Was there any moment that felt unfair, frustrating, or demotivating? What happened and why did it bother you?
                 </label>
@@ -366,7 +361,7 @@ export default function ResultsPage() {
               </div>
 
               {/* Improvement Suggestion */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col gap-1">
                 <label className="text-sm font-medium" htmlFor="improvementSuggestion">
                   If you could change one thing about the game to make it more fun or less annoying for you personally, what would you change first?
                 </label>
@@ -381,11 +376,11 @@ export default function ResultsPage() {
               </div>
 
               {/* Will Return Question */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col gap-1">
                 <label className="text-sm font-medium">
                   Would you play Wordflower again on your own, without being asked to? Why or why not?
                 </label>
-                <div className="flex gap-4 justify-center mb-3">
+                <div className="flex gap-4 justify-start mb-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -498,11 +493,11 @@ export default function ResultsPage() {
                   </div>
                 )}
                 
-                <div className="pt-4 text-center">
+                {/* <div className="pt-4 text-center">
                   <Button onClick={handleReturnToGame} size="lg" className="w-full">
                     Play Again
                   </Button>
-                </div>
+                </div> */}
               </div>
             </Card>
           </div>
