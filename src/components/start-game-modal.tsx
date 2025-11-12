@@ -62,7 +62,7 @@ export function StartGameModal({
           <DialogTitle>Thank you for participating in our study! 🌻</DialogTitle>          
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <div className="space-y-4">
           <div>
             <h4 className="font-semibold mb-2">How to Play:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">

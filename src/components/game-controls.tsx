@@ -20,18 +20,10 @@ export function GameControls({
   onEndGame,
   isEndingGame = false
 }: GameControlsProps) {
-  if (isMobile) {
-    return (
-      <h3 className={`text-lg font-bold ${timer <= 60 ? 'text-red-500' : 'text-foreground'}`}>
-        🌻 {formatTime(timer)}j
-      </h3>
-    )
-  }
-
   return (
     <div className="flex justify-between items-center mb-4">
 
-      <div className="flex-1 flex justify-end items-center gap-4">
+      <div className={`flex-1 w-full flex ${isMobile ? 'justify-center' : 'justify-end'} items-center gap-4`}>
         {gameState === 'playing' && (
           <div className="flex flex-row justify-end gap-4 text-center items-center">
                         <div className={`text-lg font-mono font-bold ${timer <= 60 ? 'text-red-500' : 'text-foreground'}`}>

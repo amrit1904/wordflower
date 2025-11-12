@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { X, Delete } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface WordDisplayProps {
   currentWord: string
@@ -11,6 +12,8 @@ interface WordDisplayProps {
 }
 
 export function WordDisplay({ currentWord, onClear, onBackspace }: WordDisplayProps) {
+  const isMobile = useMediaQuery("(max-width: 1025px)")
+
   return (
     <div className="flex items-center justify-center gap-4 mb-8">
       <Button
@@ -32,7 +35,9 @@ export function WordDisplay({ currentWord, onClear, onBackspace }: WordDisplayPr
           "text-foreground",
         )}
       >
-        {currentWord || <span className="text-muted-foreground text-xl">Type or Click Letters</span>}
+        {currentWord || <span className="text-muted-foreground text-xl">
+          {isMobile ? "Tap letters" : "Click or type letters"}
+          </span>}
       </div>
 
       <Button

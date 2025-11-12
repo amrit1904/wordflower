@@ -57,7 +57,7 @@ const generateGameId = () => {
 // Get user ID from localStorage (middleware ensures it exists)
 const getUserId = () => {
   if (typeof window === "undefined") return null
-  
+
   const userId = localStorage.getItem('wordflower_user_id')
   if (userId) {
     // Ensure cookie is synced with localStorage
@@ -78,7 +78,7 @@ export default function WordflowerGame() {
   // const [viewedHintsIndex, setViewedHintsIndex] = useState<number[]>([])
   // const [showHint, setShowHint] = useState(false)
   const [allWords, setAllWords] = useState<string[]>([])
-  
+
   const [gameData, setGameData] = useState<GameData | null>(null)
   // const [hintWords, setHintWords] = useState<WordHints[]>([])
 
@@ -91,15 +91,15 @@ export default function WordflowerGame() {
   const [isTabVisible, setIsTabVisible] = useState(true)
   const [savedGame, setSavedGame] = useState<SavedGameState | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-  
+
   // Loading states
   const [isSubmittingWord, setIsSubmittingWord] = useState(false)
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [isEndingGame, setIsEndingGame] = useState(false)
-  
+
   // Helper to calculate elapsed time
   const getElapsedTime = () => 30 * 60 - timer
-  
+
   const timerRef = useRef(30 * 60);
   const wordsFoundRef = useRef(0);
   const gameStateRef = useRef<'not-started' | 'playing' | 'ended'>('not-started');
@@ -121,7 +121,7 @@ export default function WordflowerGame() {
   useEffect(() => {
     const id = getUserId()
     setUserId(id)
-    
+
     // Sync localStorage with cookies for middleware
     const syncCookie = () => {
       const localUserId = localStorage.getItem('wordflower_user_id')
@@ -129,10 +129,10 @@ export default function WordflowerGame() {
         document.cookie = `wordflower_user_id=${localUserId}; path=/; max-age=31536000`
       }
     }
-    
+
     syncCookie()
     window.addEventListener('storage', syncCookie)
-    
+
     return () => window.removeEventListener('storage', syncCookie)
   }, [])
 
@@ -158,7 +158,7 @@ export default function WordflowerGame() {
 
   // Update game metadata in analytics
   const updateGameMetadata = useCallback(async () => {
-    if (!gameData?.gameId || !userId) return    
+    if (!gameData?.gameId || !userId) return
     try {
       // Use a ref to get current timer value or pass it as parameter      
       await fetch('/api/analytics', {
@@ -319,7 +319,7 @@ export default function WordflowerGame() {
     let metadataIntervalId: NodeJS.Timeout | null = null
 
     if (gameState === 'playing') {
-      metadataIntervalId = setInterval(() => {        
+      metadataIntervalId = setInterval(() => {
         updateGameMetadata()
       }, 30000) // Update every 30 seconds
     }
@@ -335,9 +335,11 @@ export default function WordflowerGame() {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
-    
+
     if (mins > 0) {
-      // Show only minutes when more than 1 minute remaining
+      if (mins === 1) {
+        return `1 minute remaining`
+      }
       return `${mins} minutes remaining`
     } else {
       // Show seconds when less than 1 minute remaining
@@ -393,14 +395,14 @@ export default function WordflowerGame() {
         const completionResponse = await fetch(`/api/game/completed?userId=${userId}&gameId=${newGame.gameId}`)
         if (completionResponse.ok) {
           const { isCompleted, gameSessionData } = await completionResponse.json()
-          
+
           if (isCompleted) {
             // Game already completed, redirect to results
             toast.info("You've already completed this game! Redirecting to results...")
-            
+
             // GET request to fetch results from MongoDB
             // const resultsResponse = await fetch(`/api/analytics/results?gameId=${newGame.gameId}`)
-            
+
             // Store the completed game data in localStorage for results page
             // const resultsData = {
             //   gameId: newGame.gameId,
@@ -412,7 +414,7 @@ export default function WordflowerGame() {
             //   isAlreadyCompleted: true // Mark as already completed
             // }
             // localStorage.setItem('wordflower_results', JSON.stringify(resultsData))
-            
+
             router.push('/results?gameid=' + newGame.gameId)
             return
           }
@@ -447,7 +449,7 @@ export default function WordflowerGame() {
                   totalWordsAvailable: newGame.wordCount
                 }
               })
-            })            
+            })
           } catch (error) {
             console.error('Failed to log game_started event:', error)
           }
@@ -475,7 +477,7 @@ export default function WordflowerGame() {
     }
   }
 
-  const endGame = async() => {
+  const endGame = async () => {
     setIsEndingGame(true)
     try {
       setGameState('ended')
@@ -485,14 +487,14 @@ export default function WordflowerGame() {
         clearInterval(intervalId)
         setIntervalId(null)
       }
-      
+
       updateGameMetadata()
 
       logAnalyticsEvent('game_ended', {
         finalWordsFound: foundWords.length,
         finalTime: getElapsedTime(),
         completionRate: gameData ? (foundWords.length / gameData.wordCount) * 100 : 0
-      })    
+      })
 
       const fetchedAllWords = await fetchAllWords()
 
@@ -511,7 +513,7 @@ export default function WordflowerGame() {
           console.error('Failed to mark game as completed:', error)
         }
       }
-      
+
       // Store the results to MongoDB
       if (userId && gameData) {
         try {
@@ -534,7 +536,7 @@ export default function WordflowerGame() {
           console.error('Failed to store game results:', error)
         }
       }
-      
+
       // Simple redirect to results page
       router.push('/results?gameid=' + gameData?.gameId)
     } finally {
@@ -583,11 +585,11 @@ export default function WordflowerGame() {
         const completionResponse = await fetch(`/api/game/completed?userId=${userId}&gameId=${saved.gameId}`)
         if (completionResponse.ok) {
           const { isCompleted, gameSessionData } = await completionResponse.json()
-          
+
           if (isCompleted) {
             // Game already completed, redirect to results
             toast.info("This game was already completed! Redirecting to results...")
-            
+
             // Store the completed game data in localStorage for results page
             const resultsData = {
               gameId: saved.gameId,
@@ -605,7 +607,7 @@ export default function WordflowerGame() {
               isAlreadyCompleted: true // Mark as already completed
             }
             localStorage.setItem('wordflower_results', JSON.stringify(resultsData))
-            
+
             router.push('/results?completed=true')
             return
           }
@@ -651,7 +653,7 @@ export default function WordflowerGame() {
                   totalWordsAvailable: savedGame.wordCount
                 }
               })
-            })            
+            })
           } catch (error) {
             console.error('Failed to log game_resumed event:', error)
           }
@@ -844,10 +846,12 @@ export default function WordflowerGame() {
       if (result.isValid) {
         setCurrentWord("")
         setFoundWords((prev) => [...prev, lowerWord])
-        
+
         // Track pangrams separately
         if (result.isPangram) {
+          console.log('pangram found:', lowerWord)
           setFoundPangrams(prev => [...prev, lowerWord])
+          console.log(foundPangrams)
         }
 
         logAnalyticsEvent('word_found', {
@@ -866,7 +870,7 @@ export default function WordflowerGame() {
         const encouragements = result.isPangram
           ? ["🎉 Pangram! Amazing!", "🌟 Incredible pangram!", "✨ Perfect pangram!"]
           : ["✅ Great job!", "🌻 Well done!", "⭐ Excellent!", "🎯 Amazing!", "🏆 Fantastic!"]
-        toast.success(`${encouragements[Math.floor(Math.random() * encouragements.length)]}`)        
+        toast.success(`${encouragements[Math.floor(Math.random() * encouragements.length)]}`)
       } else {
         logAnalyticsEvent('word_submission_failed', {
           reason: 'not_in_wordlist',
@@ -945,7 +949,12 @@ export default function WordflowerGame() {
             isEndingGame={isEndingGame}
           />
 
-          {gameData && isMobile && <FoundWordsAccordion foundWords={foundWords} totalWords={gameData?.wordCount} />}
+          {gameData && isMobile &&
+            <FoundWordsAccordion
+              foundWords={foundWords}
+              totalWords={gameData?.wordCount}
+              pangrams={foundPangrams}
+            />}
         </header>
 
         {gameData && (
@@ -968,7 +977,11 @@ export default function WordflowerGame() {
             </div>
 
             {!isMobile && <div className="flex flex-col gap-4">
-              <FoundWordsList foundWords={foundWords} totalWords={gameData.wordCount} pangrams={foundPangrams} />
+              <FoundWordsList 
+                foundWords={foundWords} 
+                totalWords={gameData.wordCount} 
+                pangrams={foundPangrams} 
+                />
               <GameRules />
               {/* <Card className="p-6 mb-6">
                 <HintSystem
