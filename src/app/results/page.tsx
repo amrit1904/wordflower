@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"  
@@ -46,7 +46,7 @@ interface GameFeedback {
   submittedAt: Date
 }
 
-export default function ResultsPage() {
+function ResultsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -516,5 +516,19 @@ export default function ResultsPage() {
       
       <Toaster />
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <ResultsPageContent />
+    </Suspense>
   )
 }
