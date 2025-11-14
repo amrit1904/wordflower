@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import nodemailer from 'nodemailer';
 import { getCollection } from '@/lib/mongodb'
 
 interface SignUpRequest {
@@ -81,7 +82,53 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await collection.insertOne(signupRequest)
+    
+    // Send notification email to admin addresses (if configured)
+    try {
+      const adminListRaw = process.env.ADMIN_EMAILS || ''
+      const adminEmails = adminListRaw.split(',').map(e => e.trim()).filter(Boolean)
 
+      const mailUser = process.env.MAIL_ID
+      const mailPass = process.env.MAIL_PWD
+
+      if (adminEmails.length > 0 && mailUser && mailPass) {
+        // Create transporter
+        const transporter = nodemailer.createTransport({
+          service: process.env.MAIL_SERVICE || 'gmail',
+          auth: {
+            user: mailUser,
+            pass: mailPass
+          }
+        })
+
+        const subject = `New Wordflower signup: ${signupRequest.firstName} ${signupRequest.lastName}`
+        const htmlBody = `
+          <h2>New signup request</h2>
+          <ul>
+            <li><strong>Name:</strong> ${signupRequest.firstName} ${signupRequest.lastName}</li>
+            <li><strong>Email:</strong> ${signupRequest.email}</li>
+            <li><strong>Age:</strong> ${signupRequest.age}</li>
+            <li><strong>Gender:</strong> ${signupRequest.gender}</li>
+            <li><strong>Education:</strong> ${signupRequest.education}</li>
+            <li><strong>Occupation:</strong> ${signupRequest.occupation}</li>
+            <li><strong>Native language:</strong> ${signupRequest.nativeLanguage}</li>
+            <li><strong>English proficiency:</strong> ${signupRequest.englishProficiency}</li>
+            <li><strong>Submitted At:</strong> ${new Date(signupRequest.submittedAt).toLocaleString()}</li>
+          </ul>
+        `
+        // const fromHeader = `Wordflower Study <${mailUser}>`;
+        await transporter.sendMail({
+          from: `Wordflower Study <${mailUser}>`,
+          to: adminEmails,
+          subject,
+          html: htmlBody,
+          replyTo: signupRequest.email
+        })
+      }
+    } catch (emailErr) {
+      console.error('Failed to send signup notification email:', emailErr)
+      // do not fail the request because email failed
+    }
     if (result.insertedId) {
       return NextResponse.json({ 
         success: true, 
