@@ -102,6 +102,7 @@ export default function WordflowerGame() {
 
   const timerRef = useRef(30 * 60);
   const wordsFoundRef = useRef(0);
+  const foundWordsRef = useRef<string[]>([]);
   const gameStateRef = useRef<'not-started' | 'playing' | 'ended'>('not-started');
   // const currentHintWord = hintWords[currentHintWordIndex] || null
 
@@ -111,7 +112,8 @@ export default function WordflowerGame() {
 
   useEffect(() => {
     wordsFoundRef.current = foundWords.length
-  }, [foundWords.length])
+    foundWordsRef.current = foundWords
+  }, [foundWords])
 
   useEffect(() => {
     gameStateRef.current = gameState
@@ -170,7 +172,7 @@ export default function WordflowerGame() {
           gameMetadata: {
             totalWords: gameData.wordCount,
             wordsFound: wordsFoundRef.current,
-            foundWords: foundWords, // Store actual found words array
+            foundWords: foundWordsRef.current, // Store actual found words array using ref
             totalTime: 30 * 60 - timerRef.current, // Elapsed time
             gameState: gameStateRef.current
           }
@@ -490,13 +492,16 @@ export default function WordflowerGame() {
 
       updateGameMetadata()
 
-      logAnalyticsEvent('game_ended', {
-        finalWordsFound: foundWords.length,
-        finalTime: getElapsedTime(),
-        completionRate: gameData ? (foundWords.length / gameData.wordCount) * 100 : 0
-      })
+        const currentFoundWords = foundWordsRef.current
+        const currentElapsedTime = 30 * 60 - timerRef.current
+        
+        logAnalyticsEvent('game_ended', {
+          finalWordsFound: currentFoundWords.length,
+          finalTime: currentElapsedTime,
+          completionRate: gameData ? (currentFoundWords.length / gameData.wordCount) * 100 : 0
+        })
 
-      const fetchedAllWords = await fetchAllWords()
+        const fetchedAllWords = await fetchAllWords()
 
       // Mark game as completed for this user
       if (userId && gameData) {
@@ -514,9 +519,12 @@ export default function WordflowerGame() {
         }
       }
 
-      // Store the results to MongoDB
+      // Store the results to MongoDB using refs to ensure we capture the current state
       if (userId && gameData) {
         try {
+          const currentFoundWords = foundWordsRef.current
+          const currentElapsedTime = 30 * 60 - timerRef.current
+          
           await fetch('/api/analytics/results', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -524,9 +532,9 @@ export default function WordflowerGame() {
               userId,
               gameId: gameData.gameId,
               results: {
-                foundWords,
+                foundWords: currentFoundWords,
                 allWords: fetchedAllWords,
-                timer: getElapsedTime(),
+                timer: currentElapsedTime,
                 gameData,
                 timestamp: Date.now()
               }
