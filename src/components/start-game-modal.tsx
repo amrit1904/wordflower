@@ -6,6 +6,8 @@ import { useState } from "react"
 interface SavedGameState {
   gameId: string
   foundWords: string[]
+  currentHintWordIndex: number
+  hintLevel: number
   timer: number
   gameState: 'not-started' | 'playing' | 'ended'
   currentWord: string
@@ -39,7 +41,7 @@ export function StartGameModal({
 
   const handleResumeGame = async () => {
     if (!savedGame) return
-    
+
     setIsResuming(true)
     try {
       await onResumeGame(savedGame)
@@ -59,9 +61,9 @@ export function StartGameModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Thank you for participating in our study! 🌻</DialogTitle>          
+          <DialogTitle>Thank you for participating in our study! 🌻</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold">How to Play:</h4>
@@ -73,16 +75,16 @@ export function StartGameModal({
               <li>Each game has atleast one pangram - words that use all the letters!</li>
             </ul>
           </div>
-          
+
           <div className="text-sm">
             <span className="font-semibold">Time Limit:</span> 30 minutes
           </div>
-          
+
           <div className="text-sm text-muted-foreground">
-            After completing the game, you'll be asked to provide feedback through a short survey. 
+            After completing the game, you'll be asked to provide feedback through a short survey.
             We'll be happy to share the results with you!
           </div>
-          
+
           {savedGame && (
             <div className="p-3 bg-primary/10 rounded-lg">
               <span className="text-primary font-medium">
@@ -109,7 +111,7 @@ export function StartGameModal({
                   "New Game"
                 )}
               </Button> */}
-              <Button 
+              <Button
                 onClick={handleResumeGame}
                 className="flex-1"
                 disabled={isStartingGame || isResuming}
@@ -125,9 +127,9 @@ export function StartGameModal({
               </Button>
             </>
           ) : (
-            <Button 
-              onClick={onStartNewGame} 
-              size="lg" 
+            <Button
+              onClick={onStartNewGame}
+              size="lg"
               className="w-full"
               disabled={isStartingGame}
             >
