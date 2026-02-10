@@ -13,6 +13,7 @@ interface SignUpRequest {
   nativeLanguage: string
   englishProficiency: string
   submittedAt: Date
+  wordflowerFamiliarity: string
 }
 
 export async function POST(request: NextRequest) {
@@ -28,11 +29,12 @@ export async function POST(request: NextRequest) {
       occupation,
       nativeLanguage,
       englishProficiency,
-      submittedAt
+      submittedAt,
+      wordflowerFamiliarity
     } = body
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !age || !gender || !education || !nativeLanguage || !englishProficiency) {
+    if (!firstName || !lastName || !email || !age || !gender || !education || !nativeLanguage || !englishProficiency || !wordflowerFamiliarity) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest) {
       occupation: occupation?.trim() || '',
       nativeLanguage: nativeLanguage.trim(),
       englishProficiency,
+      wordflowerFamiliarity,
       submittedAt: new Date(submittedAt)
     }
 
