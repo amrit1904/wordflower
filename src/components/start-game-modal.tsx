@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { formatElapsedTime } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
@@ -24,7 +25,6 @@ interface StartGameModalProps {
   savedGame: SavedGameState | null
   onStartNewGame: () => void
   onResumeGame: (savedGame: SavedGameState) => Promise<void>
-  formatTime: (seconds: number) => string
   isStartingGame?: boolean
 }
 
@@ -34,7 +34,6 @@ export function StartGameModal({
   savedGame,
   onStartNewGame,
   onResumeGame,
-  formatTime,
   isStartingGame = false
 }: StartGameModalProps) {
   const [isResuming, setIsResuming] = useState(false)
@@ -50,13 +49,7 @@ export function StartGameModal({
     }
   }
 
-  // Format elapsed time for saved game display
-  const formatElapsedTime = (remainingSeconds: number) => {
-    const elapsedSeconds = 30 * 60 - remainingSeconds
-    const mins = Math.floor(elapsedSeconds / 60)
-    const secs = elapsedSeconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>

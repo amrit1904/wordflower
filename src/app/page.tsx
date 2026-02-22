@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, use } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Flower } from "@/components/flower"
 import { WordDisplay } from "@/components/word-display"
@@ -17,6 +17,9 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import FoundWordsAccordion from "@/components/foundWordsAccordion"
 import { HintSystem } from "@/components/hint-system"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { BREAK_THRESHOLD, BREAK_TIME, formatElapsedTime, formatTime } from "@/lib/utils"
+import { BreakModal } from "@/components/break-modal"
 
 export interface GameData {
   gameId: string
@@ -69,6 +72,8 @@ const getUserId = () => {
   return userId
 }
 
+
+
 export default function WordflowerGame() {
   const router = useRouter()
   const isMobile = useMediaQuery("(max-width: 1025px)")
@@ -89,10 +94,14 @@ export default function WordflowerGame() {
   const [showStartModal, setShowStartModal] = useState(true)
   const [showEndConfirmModal, setShowEndConfirmModal] = useState(false)
   const [timer, setTimer] = useState(30 * 60) // 30 minutes in seconds
+  const [timeSinceWord, setTimeSinceWord] = useState(BREAK_THRESHOLD)
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [isTabVisible, setIsTabVisible] = useState(true)
   const [savedGame, setSavedGame] = useState<SavedGameState | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+
+  const [showBreakModal, setShowBreakModal] = useState(false)
+  const [breakTimer, setBreakTimer] = useState(BREAK_TIME)
 
   // Loading states
   const [isSubmittingWord, setIsSubmittingWord] = useState(false)
@@ -259,9 +268,9 @@ export default function WordflowerGame() {
     }
   }, [])
 
-  // Timer functionality with tab visibility support
+  // Timer functionality with tab visibility support (pauses during break)
   useEffect(() => {
-    if (gameState === 'playing') {
+    if (gameState === 'playing' && !showBreakModal) {
       const id = setInterval(() => {
         setTimer((prev) => {
           if (prev <= 1) {
@@ -278,7 +287,42 @@ export default function WordflowerGame() {
       clearInterval(intervalId)
       setIntervalId(null)
     }
-  }, [gameState, isTabVisible])
+  }, [gameState, isTabVisible, showBreakModal])
+
+  // Countdown timeSinceWord during gameplay (not during break)
+  useEffect(() => {
+    if (gameState !== 'playing' || showBreakModal) return
+
+    const id = setInterval(() => {
+      setTimeSinceWord((prev) => {
+        if (prev <= 1) {
+          // 2 minutes since last word found — trigger auto-break
+          setTimeout(() => {
+            setShowBreakModal(true)
+            setBreakTimer(BREAK_TIME) // Reset break timer to 5 minutes
+          }, 0)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(id)
+  }, [gameState, showBreakModal])
+
+  // Break timer countdown while break modal is open
+  useEffect(() => {
+    if (!showBreakModal) return
+
+    const id = setInterval(() => {
+      setBreakTimer((prev) => {
+        if (prev <= 1) return 0
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(id)
+  }, [showBreakModal])
 
   // Tab visibility handling
   useEffect(() => {
@@ -334,22 +378,6 @@ export default function WordflowerGame() {
       }
     }
   }, [gameState, updateGameMetadata])
-
-  // Format timer display - countdown format
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-
-    if (mins > 0) {
-      if (mins === 1) {
-        return `1 minute remaining`
-      }
-      return `${mins} minutes remaining`
-    } else {
-      // Show seconds when less than 1 minute remaining
-      return `${secs} sec remaining`
-    }
-  }
 
   // Load new game from server
   const loadNewGame = async () => {
@@ -428,6 +456,7 @@ export default function WordflowerGame() {
       setGameState('playing')
       setShowStartModal(false)
       setTimer(30 * 60) // Reset to 30 minutes
+      setTimeSinceWord(BREAK_THRESHOLD) // Reset time since last word
       setFoundWords([])
       setFoundPangrams([])
       setCurrentWord("")
@@ -856,6 +885,7 @@ export default function WordflowerGame() {
       if (result.isValid) {
         setCurrentWord("")
         setFoundWords((prev) => [...prev, lowerWord])
+        setTimeSinceWord(BREAK_THRESHOLD)
 
         // Track pangrams separately
         if (result.isPangram) {
@@ -952,7 +982,6 @@ export default function WordflowerGame() {
           <GameControls
             gameState={gameState}
             timer={timer}
-            formatTime={formatTime}
             isTabVisible={isTabVisible}
             isMobile={isMobile}
             onEndGame={handleEndGameRequest}
@@ -1014,7 +1043,6 @@ export default function WordflowerGame() {
         onConfirm={handleEndGameConfirm}
         onCancel={handleEndGameCancel}
         timer={timer}
-        formatTime={formatTime}
       />
 
       <StartGameModal
@@ -1023,8 +1051,14 @@ export default function WordflowerGame() {
         savedGame={savedGame}
         onStartNewGame={startGame}
         onResumeGame={resumeGame}
-        formatTime={formatTime}
         isStartingGame={isStartingGame}
+      />
+
+      <BreakModal
+        isOpen={showBreakModal}
+        setIsOpen={setShowBreakModal}
+        breakTimer={breakTimer}
+        setTimeSinceWord={setTimeSinceWord}
       />
 
       <Toaster />
