@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, use } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo, use } from "react"
 import { useRouter } from "next/navigation"
 import { Flower } from "@/components/flower"
 import { WordDisplay } from "@/components/word-display"
@@ -16,6 +16,9 @@ import { toast } from "sonner"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import FoundWordsAccordion from "@/components/foundWordsAccordion"
 import { HintSystem } from "@/components/hint-system"
+import { AdaptiveHint } from "@/components/adaptive-hint"
+import { computeThreeLetterPrefixCounts, computeRepeatedLetterWords } from "@/lib/adaptive-hint-utils"
+import type { AdaptiveHintResult } from "@/lib/adaptive-hint-utils"
 import { Card } from "@/components/ui/card"
 
 export interface GameData {
@@ -385,6 +388,50 @@ export default function WordflowerGame() {
       fetchHints(gameData.gameId).then(setHintWords)
     }
   }, [gameData?.gameId])
+
+  // Fetch all words early for adaptive hints when game starts or resumes
+  useEffect(() => {
+    if (gameData?.gameId && (gameState === 'playing')) {
+      const fetchWordsForHints = async () => {
+        try {
+          const res = await fetch(`/api/game?gameId=${gameData.gameId}`)
+          if (!res.ok) throw new Error("Failed to fetch words")
+          const data = await res.json()
+          setAllWords(data)
+        } catch (err) {
+          console.error('Failed to fetch words for adaptive hints:', err)
+        }
+      }
+      // Only fetch if we don't already have them
+      if (allWords.length === 0) {
+        fetchWordsForHints()
+      }
+    }
+  }, [gameData?.gameId, gameState])
+
+  // Precompute adaptive hint data
+  const prefixMap = useMemo(
+    () => computeThreeLetterPrefixCounts(allWords),
+    [allWords]
+  )
+  const repeatedLetterWords = useMemo(
+    () => computeRepeatedLetterWords(allWords),
+    [allWords]
+  )
+
+  // Analytics callback for adaptive hints
+  const handleAdaptiveHintShown = useCallback(
+    (hint: AdaptiveHintResult) => {
+      logAnalyticsEvent('adaptive_hint_shown', {
+        strategy: hint.strategyName,
+        targetWord: hint.targetWord || null,
+        message: hint.message,
+        currentTime: getElapsedTime(),
+        wordsFoundSoFar: foundWords.length,
+      })
+    },
+    [logAnalyticsEvent, getElapsedTime, foundWords.length]
+  )
 
 
   // Game control functions
@@ -984,6 +1031,16 @@ export default function WordflowerGame() {
                 onShuffle={handleShuffle}
                 isSubmittingWord={isSubmittingWord}
               />
+              <AdaptiveHint
+                gameState={gameState}
+                foundWords={foundWords}
+                allWords={allWords}
+                hintData={hintWords}
+                gameData={gameData}
+                prefixMap={prefixMap}
+                repeatedLetterWords={repeatedLetterWords}
+                onAdaptiveHintShown={handleAdaptiveHintShown}
+              />
             </div>
 
             {!isMobile && <div className="flex flex-col gap-4">
@@ -993,7 +1050,7 @@ export default function WordflowerGame() {
                 pangrams={foundPangrams}
               />
               <GameRules />
-              <Card className="p-6 mb-6">
+              {/* <Card className="p-6 mb-6">
                 <HintSystem
                   currentHintWord={currentHintWord}
                   hintLevel={hintLevel}
@@ -1002,7 +1059,7 @@ export default function WordflowerGame() {
                   foundWords={foundWords}
                   onPreviousWord={handlePreviousWord}
                 />
-              </Card>
+              </Card> */}
             </div>}
           </div>
         )}
@@ -1026,6 +1083,7 @@ export default function WordflowerGame() {
         formatTime={formatTime}
         isStartingGame={isStartingGame}
       />
+
 
       <Toaster />
     </div>
