@@ -17,7 +17,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import FoundWordsAccordion from "@/components/foundWordsAccordion"
 import { HintSystem } from "@/components/hint-system"
 import { AdaptiveHint } from "@/components/adaptive-hint"
-import { computeThreeLetterPrefixCounts, computeRepeatedLetterWords } from "@/lib/adaptive-hint-utils"
+import { computeThreeLetterPrefixCounts, computeRepeatedLetterWords, computeWordRelationships } from "@/lib/adaptive-hint-utils"
 import type { AdaptiveHintResult } from "@/lib/adaptive-hint-utils"
 import { Card } from "@/components/ui/card"
 
@@ -416,6 +416,10 @@ export default function WordflowerGame() {
   )
   const repeatedLetterWords = useMemo(
     () => computeRepeatedLetterWords(allWords),
+    [allWords]
+  )
+  const wordRelationships = useMemo(
+    () => computeWordRelationships(allWords),
     [allWords]
   )
 
@@ -1017,6 +1021,19 @@ export default function WordflowerGame() {
         {gameData && (
           <div className="grid lg:grid-cols-2 gap-8">
             <div>
+              <div className="min-h-[90px] mb-2">
+                <AdaptiveHint
+                  gameState={gameState}
+                  foundWords={foundWords}
+                  allWords={allWords}
+                  hintData={hintWords}
+                  gameData={gameData}
+                  prefixMap={prefixMap}
+                  repeatedLetterWords={repeatedLetterWords}
+                  wordRelationships={wordRelationships}
+                  onAdaptiveHintShown={handleAdaptiveHintShown}
+                />
+              </div>
               <WordDisplay currentWord={currentWord} onClear={handleClear} onBackspace={handleBackspace} />
               <Flower
                 centerLetter={gameData.centerLetter}
@@ -1030,16 +1047,6 @@ export default function WordflowerGame() {
                 onSubmit={handleSubmit}
                 onShuffle={handleShuffle}
                 isSubmittingWord={isSubmittingWord}
-              />
-              <AdaptiveHint
-                gameState={gameState}
-                foundWords={foundWords}
-                allWords={allWords}
-                hintData={hintWords}
-                gameData={gameData}
-                prefixMap={prefixMap}
-                repeatedLetterWords={repeatedLetterWords}
-                onAdaptiveHintShown={handleAdaptiveHintShown}
               />
             </div>
 

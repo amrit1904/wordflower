@@ -72,13 +72,83 @@ export function computeRepeatedLetterWords(words: string[]): RepeatedLetterWord[
     return results
 }
 
+// --- Strategy 4: Word relationships ---
+
+export type RelationshipType = "anagram" | "prefix" | "suffix" | "trimming" | "single_letter_swap"
+
+export interface WordRelationship {
+    source: string        // the found word
+    target: string        // the unfound word to nudge toward
+    type: RelationshipType
+}
+
+/**
+ * Precomputes pairwise relationships between all words in the game.
+ * Returns a list of directed relationships: source → target.
+ * Both directions are stored for symmetric relations (anagrams, single-letter swap).
+ */
+export function computeWordRelationships(words: string[]): WordRelationship[] {
+    const upperWords = words.map((w) => w.toUpperCase())
+    const relationships: WordRelationship[] = []
+
+    for (let i = 0; i < upperWords.length; i++) {
+        for (let j = 0; j < upperWords.length; j++) {
+            if (i === j) continue
+            const a = upperWords[i]
+            const b = upperWords[j]
+
+            // Anagram: same sorted letters, different word
+            if (a.length === b.length && a !== b) {
+                const sortedA = a.split("").sort().join("")
+                const sortedB = b.split("").sort().join("")
+                if (sortedA === sortedB) {
+                    relationships.push({ source: a, target: b, type: "anagram" })
+                    continue // skip other checks for this pair
+                }
+            }
+
+            // Prefix: a is a prefix of b (e.g., BUILD → BUILDING)
+            if (b.length > a.length && b.startsWith(a) && a.length >= 4) {
+                relationships.push({ source: a, target: b, type: "prefix" })
+                continue
+            }
+
+            // Suffix: a is a suffix of b (e.g., DING → BIDDING)
+            if (b.length > a.length && b.endsWith(a) && a.length >= 4) {
+                relationships.push({ source: a, target: b, type: "suffix" })
+                continue
+            }
+
+            // Trimming: b is a sub-string of a from trimming front/back (e.g., EIGHTH → EIGHT)
+            if (a.length > b.length && b.length >= 4 && (a.startsWith(b) || a.endsWith(b))) {
+                relationships.push({ source: a, target: b, type: "trimming" })
+                continue
+            }
+
+            // Single letter swap: same length, differ by exactly 1 letter
+            if (a.length === b.length && a.length >= 4) {
+                let diffCount = 0
+                for (let k = 0; k < a.length; k++) {
+                    if (a[k] !== b[k]) diffCount++
+                    if (diffCount > 1) break
+                }
+                if (diffCount === 1) {
+                    relationships.push({ source: a, target: b, type: "single_letter_swap" })
+                }
+            }
+        }
+    }
+
+    return relationships
+}
+
 // --- Hint result type ---
 
 export interface AdaptiveHintResult {
-    strategy: 1 | 2 | 3
+    strategy: 1 | 2 | 3 | 4
     message: string
     /** A short label for the hint type (for analytics) */
-    strategyName: "definition" | "prefix_count" | "repeated_letters"
+    strategyName: "definition" | "prefix_count" | "repeated_letters" | "word_relationship"
     /** The word this hint is about (if applicable) */
     targetWord?: string
 }
@@ -86,8 +156,8 @@ export interface AdaptiveHintResult {
 // --- Main hint picker ---
 
 /**
- * Picks an adaptive hint using one of the three strategies.
- * Cycles through strategies in order: 1 → 2 → 3 → 1 → ...
+ * Picks an adaptive hint using one of the four strategies.
+ * Cycles through strategies in order: 1 → 2 → 3 → 4 → 1 → ...
  * Falls back to the next strategy if the current one has no candidates.
  *
  * Returns null if no hint can be generated (e.g., all words found).
@@ -98,7 +168,8 @@ export function pickAdaptiveHint(
     hintData: WordHints[],
     prefixMap: Map<string, string[]>,
     repeatedLetterWords: RepeatedLetterWord[],
-    lastStrategyUsed: number // 0-based: pass 0 initially
+    lastStrategyUsed: number,
+    wordRelationships: WordRelationship[] = []
 ): AdaptiveHintResult | null {
     const foundSet = new Set(foundWords.map((w) => w.toUpperCase()))
     const unfoundWords = allWords.filter((w) => !foundSet.has(w.toUpperCase()))
@@ -106,12 +177,12 @@ export function pickAdaptiveHint(
     if (unfoundWords.length === 0) return null
 
     // Try strategies in round-robin order starting from the next one
-    const strategies = [1, 2, 3] as const
+    const strategies = [1, 2, 3, 4] as const
     for (let i = 0; i < strategies.length; i++) {
         const strategyIndex = (lastStrategyUsed + i) % strategies.length
         const strategy = strategies[strategyIndex]
 
-        const result = tryStrategy(strategy, unfoundWords, foundSet, hintData, prefixMap, repeatedLetterWords)
+        const result = tryStrategy(strategy, unfoundWords, foundSet, hintData, prefixMap, repeatedLetterWords, wordRelationships)
         if (result) return result
     }
 
@@ -119,12 +190,13 @@ export function pickAdaptiveHint(
 }
 
 function tryStrategy(
-    strategy: 1 | 2 | 3,
+    strategy: 1 | 2 | 3 | 4,
     unfoundWords: string[],
     foundSet: Set<string>,
     hintData: WordHints[],
     prefixMap: Map<string, string[]>,
-    repeatedLetterWords: RepeatedLetterWord[]
+    repeatedLetterWords: RepeatedLetterWord[],
+    wordRelationships: WordRelationship[]
 ): AdaptiveHintResult | null {
     switch (strategy) {
         case 1:
@@ -133,6 +205,8 @@ function tryStrategy(
             return tryPrefixCountHint(unfoundWords, foundSet, prefixMap)
         case 3:
             return tryRepeatedLetterHint(unfoundWords, repeatedLetterWords)
+        case 4:
+            return tryWordRelationshipHint(foundSet, wordRelationships)
     }
 }
 
@@ -209,5 +283,41 @@ function tryRepeatedLetterHint(
         strategyName: "repeated_letters",
         targetWord: pick.word,
         message: `This word has repeated letters: ${pick.pattern}. Remember, you can reuse letters!`,
+    }
+}
+
+// --- Strategy 4: Word relationship hint ---
+
+const RELATIONSHIP_MESSAGES: Record<RelationshipType, string> = {
+    anagram:
+        "Look at your found words — one of them can be rearranged to spell a completely new word!",
+    prefix:
+        "Look at your found words — one of them is the beginning of a longer word. Try adding letters to the end!",
+    suffix:
+        "Look at your found words — one of them appears at the end of a longer word. Try adding letters to the beginning!",
+    trimming:
+        "Look at your found words — removing some letters from the front or back of one of them reveals a hidden word!",
+    single_letter_swap:
+        "Look at your found words — swapping just one letter in one of them creates an entirely new word!",
+}
+
+function tryWordRelationshipHint(
+    foundSet: Set<string>,
+    wordRelationships: WordRelationship[]
+): AdaptiveHintResult | null {
+    // Find relationships where source is found but target is not
+    const candidates = wordRelationships.filter(
+        (r) => foundSet.has(r.source) && !foundSet.has(r.target)
+    )
+
+    if (candidates.length === 0) return null
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)]
+
+    return {
+        strategy: 4,
+        strategyName: "word_relationship",
+        targetWord: pick.target,
+        message: RELATIONSHIP_MESSAGES[pick.type],
     }
 }

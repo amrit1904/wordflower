@@ -10,6 +10,7 @@ import {
     pickAdaptiveHint,
     type RepeatedLetterWord,
     type AdaptiveHintResult,
+    type WordRelationship,
 } from "@/lib/adaptive-hint-utils"
 
 interface AdaptiveHintProps {
@@ -20,6 +21,7 @@ interface AdaptiveHintProps {
     gameData: GameData | null
     prefixMap: Map<string, string[]>
     repeatedLetterWords: RepeatedLetterWord[]
+    wordRelationships: WordRelationship[]
     onAdaptiveHintShown?: (hint: AdaptiveHintResult) => void
 }
 
@@ -36,6 +38,7 @@ export function AdaptiveHint({
     gameData,
     prefixMap,
     repeatedLetterWords,
+    wordRelationships,
     onAdaptiveHintShown,
 }: AdaptiveHintProps) {
     const inactivityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -53,6 +56,7 @@ export function AdaptiveHint({
         gameData,
         prefixMap,
         repeatedLetterWords,
+        wordRelationships,
         onAdaptiveHintShown,
     })
 
@@ -64,6 +68,7 @@ export function AdaptiveHint({
             gameData,
             prefixMap,
             repeatedLetterWords,
+            wordRelationships,
             onAdaptiveHintShown,
         }
     })
@@ -91,6 +96,7 @@ export function AdaptiveHint({
             gameData: game,
             prefixMap: prefixes,
             repeatedLetterWords: repeated,
+            wordRelationships: relationships,
             onAdaptiveHintShown: onShown,
         } = latestPropsRef.current
 
@@ -103,7 +109,8 @@ export function AdaptiveHint({
             hints,
             prefixes,
             repeated,
-            lastStrategyRef.current
+            lastStrategyRef.current,
+            relationships
         )
 
         if (!hint) return
@@ -158,7 +165,7 @@ export function AdaptiveHint({
     if (!currentHint) return null
 
     return (
-        <Card className="mt-4 p-4 border-amber-300 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-700 relative animate-in fade-in slide-in-from-top-2 duration-300">
+        <Card className="p-4 border-amber-300 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-700 relative animate-in fade-in slide-in-from-top-2 duration-300">
             <button
                 onClick={dismissHint}
                 className="absolute top-2 right-2 p-1 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors"
