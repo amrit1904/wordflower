@@ -1,84 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCollection } from '@/lib/mongodb'
 
-// Feedback interface
-interface GameFeedback {
-  satisfaction: number
-  mostDifficult: string
-  improvementSuggestion?: string
-  breakHelpful?: string
-  stuckStrategy?: string
-  submittedAt: Date
+
+// Results interface
+
+interface GameResults {
+  foundWords: string[],
+  allWords?: string[],
+  timer: number,
+  gameData: any,
+  timestamp: Date
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, gameId, feedback } = body
+    const { userId, gameId, results } = body
 
-    if (!userId || !gameId || !feedback) {
+    if (!userId || !gameId || !results) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, gameId and feedback' },
-        { status: 400 }
-      )
-    }
-
-    // Validate feedback structure
-    if (
-      typeof feedback.satisfaction !== 'number' ||
-      feedback.satisfaction < 1 ||
-      feedback.satisfaction > 5 ||
-      typeof feedback.mostDifficult !== 'string' ||
-      feedback.mostDifficult.trim() === ''
-    ) {
-      return NextResponse.json(
-        { error: 'Invalid feedback data structure' },
+        { error: 'Missing required fields: userId, gameId and results' },
         { status: 400 }
       )
     }
 
     const collection = await getCollection('wordflower_collection')
-    
-    const feedbackData: GameFeedback = {
-      satisfaction: feedback.satisfaction,
-      mostDifficult: feedback.mostDifficult.trim(),
-      improvementSuggestion: feedback.improvementSuggestion?.trim(),
-      breakHelpful: feedback.breakHelpful?.trim(),
-      stuckStrategy: feedback.stuckStrategy?.trim(),
-      submittedAt: new Date()
-    }
 
-    // Update the specific game session with feedback
-    const result = await collection.updateOne(
-      { 
-        userId,
-        'gameSessions.gameId': gameId
-      },
-      {
-        $set: { 
-          'gameSessions.$.feedback': feedbackData,
-          'gameSessions.$.updatedAt': new Date(),
-          updatedAt: new Date()
-        }
-      }
-    )
+    // Find the user's document to locate the session index
+    const userDoc = await collection.findOne({ userId })
 
-    if (result.matchedCount === 0) {
+    if (!userDoc) {
       return NextResponse.json(
-        { error: 'User or game session not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Feedback submitted successfully',
-      feedback: feedbackData
-    })
+    const sessionIndex = (userDoc.gameSessions ?? []).findIndex(
+      (s: any) => s.gameId === gameId
+    )
+
+    if (sessionIndex >= 0) {
+      // Update using index-based addressing (more reliable than positional $)
+      await collection.updateOne(
+        { userId },
+        {
+          $set: {
+            [`gameSessions.${sessionIndex}.results`]: results,
+            [`gameSessions.${sessionIndex}.updatedAt`]: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      )
+    } else {
+      // Session doesn't exist yet — push a new one with results
+      await collection.updateOne(
+        { userId },
+        {
+          $push: {
+            gameSessions: {
+              gameId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              events: [],
+              results
+            }
+          } as any,
+          $set: { updatedAt: new Date() }
+        }
+      )
+    }
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Feedback submission error:', error)
+    console.error('Game results logging error:', error)
     return NextResponse.json(
-      { error: 'Failed to submit feedback' },
+      { error: 'Failed to log game results' },
       { status: 500 }
     )
   }
@@ -90,9 +87,9 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const gameId = searchParams.get('gameId')
 
-    if (!userId) {
+    if (!userId || !gameId) {
       return NextResponse.json(
-        { error: 'Missing userId parameter' },
+        { error: 'Missing required fields: userId and gameId' },
         { status: 400 }
       )
     }
@@ -107,43 +104,30 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // If gameId is provided, return specific game feedback
-    if (gameId) {
-      const gameSession = userAnalytics.gameSessions?.find(
-        (session: any) => session.gameId === gameId
+    // Find the specific game session
+    const gameSession = userAnalytics.gameSessions?.find(
+      (session: any) => session.gameId === gameId
+    )
+
+    if (!gameSession) {
+      return NextResponse.json(
+        { error: 'Game session not found' },
+        { status: 404 }
       )
-      
-      if (!gameSession) {
-        return NextResponse.json(
-          { error: 'Game session not found' },
-          { status: 404 }
-        )
-      }
-      
-      return NextResponse.json({
-        gameId: gameSession.gameId,
-        feedback: gameSession.feedback || null
-      })
     }
 
-    // Return all feedback from all game sessions
-    const allFeedback = userAnalytics.gameSessions
-      ?.filter((session: any) => session.feedback)
-      .map((session: any) => ({
-        gameId: session.gameId,
-        createdAt: session.createdAt,
-        feedback: session.feedback
-      })) || []
+    if (!gameSession.results) {
+      return NextResponse.json(
+        { error: 'No results found for this game session' },
+        { status: 404 }
+      )
+    }
 
-    return NextResponse.json({
-      userId,
-      totalFeedbackSubmissions: allFeedback.length,
-      feedback: allFeedback
-    })
+    return NextResponse.json(gameSession.results || {})
   } catch (error) {
-    console.error('Feedback retrieval error:', error)
+    console.error('Game results retrieval error:', error)
     return NextResponse.json(
-      { error: 'Failed to retrieve feedback' },
+      { error: 'Failed to retrieve game results' },
       { status: 500 }
     )
   }
