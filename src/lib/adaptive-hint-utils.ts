@@ -25,6 +25,26 @@ export function computeThreeLetterPrefixCounts(words: string[]): Map<string, str
     return prefixMap
 }
 
+/**
+ * Builds a map of 3-letter suffixes → list of words ending with that suffix.
+ * Only includes suffixes where the word is at least 4 letters long.
+ */
+export function computeThreeLetterSuffixCounts(words: string[]): Map<string, string[]> {
+    const suffixMap = new Map<string, string[]>()
+    for (const word of words) {
+        const upper = word.toUpperCase()
+        if (upper.length < 4) continue
+        const suffix = upper.slice(-3)
+        const existing = suffixMap.get(suffix)
+        if (existing) {
+            existing.push(upper)
+        } else {
+            suffixMap.set(suffix, [upper])
+        }
+    }
+    return suffixMap
+}
+
 // --- Strategy 3: Repeated letter words ---
 
 export interface RepeatedLetterWord {
@@ -33,9 +53,11 @@ export interface RepeatedLetterWord {
 }
 
 /**
- * Finds all words that contain at least one repeated letter and generates
- * a blanked pattern that reveals only the repeated letters.
- * E.g., MOOD → _OO_, COFFEE → _O__EE
+ * Finds all words that contain at least one run of consecutive repeated
+ * letters (e.g., OO in POOL, FF in COFFEE) and generates a blanked pattern
+ * that reveals only those consecutive runs.
+ * POOL → _ O O _, COFFEE → _ O _ _ E E
+ * Words like PETE (non-adjacent repeated E) are excluded.
  */
 export function computeRepeatedLetterWords(words: string[]): RepeatedLetterWord[] {
     const results: RepeatedLetterWord[] = []
@@ -44,26 +66,22 @@ export function computeRepeatedLetterWords(words: string[]): RepeatedLetterWord[
         const upper = word.toUpperCase()
         if (upper.length < 4) continue
 
-        // Count letter frequencies
-        const freq: Record<string, number> = {}
-        for (const ch of upper) {
-            freq[ch] = (freq[ch] || 0) + 1
+        // Find positions that are part of a consecutive run (2+ same letter in a row)
+        const consecutivePositions = new Set<number>()
+        for (let i = 0; i < upper.length - 1; i++) {
+            if (upper[i] === upper[i + 1]) {
+                consecutivePositions.add(i)
+                consecutivePositions.add(i + 1)
+            }
         }
 
-        // Find letters that appear more than once
-        const repeatedLetters = new Set(
-            Object.entries(freq)
-                .filter(([, count]) => count > 1)
-                .map(([letter]) => letter)
-        )
+        if (consecutivePositions.size === 0) continue
 
-        if (repeatedLetters.size === 0) continue
-
-        // Build blanked pattern: show repeated letters, blank the rest
+        // Build blanked pattern: show only consecutive repeated letters, blank the rest
         // Space out characters so individual letters are clearly visible
         const pattern = upper
             .split("")
-            .map((ch) => (repeatedLetters.has(ch) ? ch : "_"))
+            .map((ch, idx) => (consecutivePositions.has(idx) ? ch : "_"))
             .join(" ")
 
         results.push({ word: upper, pattern })
@@ -148,7 +166,7 @@ export interface AdaptiveHintResult {
     strategy: 1 | 2 | 3 | 4
     message: string
     /** A short label for the hint type (for analytics) */
-    strategyName: "definition" | "prefix_count" | "repeated_letters" | "word_relationship"
+    strategyName: "definition" | "prefix_count" | "suffix_count" | "repeated_letters" | "word_relationship"
     /** The word this hint is about (if applicable) */
     targetWord?: string
 }
@@ -167,6 +185,7 @@ export function pickAdaptiveHint(
     foundWords: string[],
     hintData: WordHints[],
     prefixMap: Map<string, string[]>,
+    suffixMap: Map<string, string[]>,
     repeatedLetterWords: RepeatedLetterWord[],
     lastStrategyUsed: number,
     wordRelationships: WordRelationship[] = []
@@ -182,7 +201,7 @@ export function pickAdaptiveHint(
         const strategyIndex = (lastStrategyUsed + i) % strategies.length
         const strategy = strategies[strategyIndex]
 
-        const result = tryStrategy(strategy, unfoundWords, foundSet, hintData, prefixMap, repeatedLetterWords, wordRelationships)
+        const result = tryStrategy(strategy, unfoundWords, foundSet, hintData, prefixMap, suffixMap, repeatedLetterWords, wordRelationships)
         if (result) return result
     }
 
@@ -195,6 +214,7 @@ function tryStrategy(
     foundSet: Set<string>,
     hintData: WordHints[],
     prefixMap: Map<string, string[]>,
+    suffixMap: Map<string, string[]>,
     repeatedLetterWords: RepeatedLetterWord[],
     wordRelationships: WordRelationship[]
 ): AdaptiveHintResult | null {
@@ -202,7 +222,12 @@ function tryStrategy(
         case 1:
             return tryDefinitionHint(unfoundWords, hintData)
         case 2:
-            return tryPrefixCountHint(unfoundWords, foundSet, prefixMap)
+            // Strategy 2 now randomly picks between prefix and suffix hints
+            if (Math.random() < 0.5) {
+                return tryPrefixCountHint(unfoundWords, foundSet, prefixMap) || trySuffixCountHint(unfoundWords, foundSet, suffixMap)
+            } else {
+                return trySuffixCountHint(unfoundWords, foundSet, suffixMap) || tryPrefixCountHint(unfoundWords, foundSet, prefixMap)
+            }
         case 3:
             return tryRepeatedLetterHint(unfoundWords, repeatedLetterWords)
         case 4:
@@ -261,6 +286,33 @@ function tryPrefixCountHint(
         strategy: 2,
         strategyName: "prefix_count",
         message: `There are ${bestCount} words remaining that start with "${bestPrefix}".`,
+    }
+}
+
+function trySuffixCountHint(
+    unfoundWords: string[],
+    foundSet: Set<string>,
+    suffixMap: Map<string, string[]>
+): AdaptiveHintResult | null {
+    // For each suffix, count how many words are still unfound
+    let bestSuffix: string | null = null
+    let bestCount = 0
+
+    for (const [suffix, words] of suffixMap) {
+        const remaining = words.filter((w) => !foundSet.has(w.toUpperCase()))
+        // Only consider suffixes with >= 2 remaining words
+        if (remaining.length >= 2 && remaining.length > bestCount) {
+            bestSuffix = suffix
+            bestCount = remaining.length
+        }
+    }
+
+    if (!bestSuffix) return null
+
+    return {
+        strategy: 2,
+        strategyName: "suffix_count",
+        message: `There are ${bestCount} words remaining that end with "${bestSuffix}".`,
     }
 }
 

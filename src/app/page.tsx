@@ -17,7 +17,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import FoundWordsAccordion from "@/components/foundWordsAccordion"
 import { HintSystem } from "@/components/hint-system"
 import { AdaptiveHint } from "@/components/adaptive-hint"
-import { computeThreeLetterPrefixCounts, computeRepeatedLetterWords, computeWordRelationships } from "@/lib/adaptive-hint-utils"
+import { computeThreeLetterPrefixCounts, computeThreeLetterSuffixCounts, computeRepeatedLetterWords, computeWordRelationships } from "@/lib/adaptive-hint-utils"
 import type { AdaptiveHintResult } from "@/lib/adaptive-hint-utils"
 import { Card } from "@/components/ui/card"
 
@@ -412,6 +412,10 @@ export default function WordflowerGame() {
   // Precompute adaptive hint data
   const prefixMap = useMemo(
     () => computeThreeLetterPrefixCounts(allWords),
+    [allWords]
+  )
+  const suffixMap = useMemo(
+    () => computeThreeLetterSuffixCounts(allWords),
     [allWords]
   )
   const repeatedLetterWords = useMemo(
@@ -1029,6 +1033,7 @@ export default function WordflowerGame() {
                   hintData={hintWords}
                   gameData={gameData}
                   prefixMap={prefixMap}
+                  suffixMap={suffixMap}
                   repeatedLetterWords={repeatedLetterWords}
                   wordRelationships={wordRelationships}
                   onAdaptiveHintShown={handleAdaptiveHintShown}

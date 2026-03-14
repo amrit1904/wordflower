@@ -20,6 +20,7 @@ interface AdaptiveHintProps {
     hintData: WordHints[]
     gameData: GameData | null
     prefixMap: Map<string, string[]>
+    suffixMap: Map<string, string[]>
     repeatedLetterWords: RepeatedLetterWord[]
     wordRelationships: WordRelationship[]
     onAdaptiveHintShown?: (hint: AdaptiveHintResult) => void
@@ -37,6 +38,7 @@ export function AdaptiveHint({
     hintData,
     gameData,
     prefixMap,
+    suffixMap,
     repeatedLetterWords,
     wordRelationships,
     onAdaptiveHintShown,
@@ -55,6 +57,7 @@ export function AdaptiveHint({
         hintData,
         gameData,
         prefixMap,
+        suffixMap,
         repeatedLetterWords,
         wordRelationships,
         onAdaptiveHintShown,
@@ -67,6 +70,7 @@ export function AdaptiveHint({
             hintData,
             gameData,
             prefixMap,
+            suffixMap,
             repeatedLetterWords,
             wordRelationships,
             onAdaptiveHintShown,
@@ -95,6 +99,7 @@ export function AdaptiveHint({
             hintData: hints,
             gameData: game,
             prefixMap: prefixes,
+            suffixMap: suffixes,
             repeatedLetterWords: repeated,
             wordRelationships: relationships,
             onAdaptiveHintShown: onShown,
@@ -108,6 +113,7 @@ export function AdaptiveHint({
             found,
             hints,
             prefixes,
+            suffixes,
             repeated,
             lastStrategyRef.current,
             relationships
