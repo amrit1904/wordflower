@@ -24,6 +24,17 @@ export const formatTime = (seconds: number) => {
   }
 }
 
+export const formatBreakTimer = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+
+  if (mins > 0) {
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  } else {
+    return `${secs} sec remaining`
+  }
+}
+
 // Format elapsed time for saved game display
 export const formatElapsedTime = (remainingSeconds: number) => {
   const elapsedSeconds = 30 * 60 - remainingSeconds

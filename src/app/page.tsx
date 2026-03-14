@@ -102,6 +102,7 @@ export default function WordflowerGame() {
 
   const [showBreakModal, setShowBreakModal] = useState(false)
   const [breakTimer, setBreakTimer] = useState(BREAK_TIME)
+  const [spotRoundIndex, setSpotRoundIndex] = useState(0)
 
   // Loading states
   const [isSubmittingWord, setIsSubmittingWord] = useState(false)
@@ -115,6 +116,7 @@ export default function WordflowerGame() {
   const wordsFoundRef = useRef(0);
   const foundWordsRef = useRef<string[]>([]);
   const gameStateRef = useRef<'not-started' | 'playing' | 'ended'>('not-started');
+  const breakEndTimeRef = useRef<number | null>(null);
   const currentHintWord = hintWords[currentHintWordIndex] || null
 
   useEffect(() => {
@@ -297,10 +299,21 @@ export default function WordflowerGame() {
       setTimeSinceWord((prev) => {
         if (prev <= 1) {
           // 2 minutes since last word found — trigger auto-break
-          setTimeout(() => {
-            setShowBreakModal(true)
-            setBreakTimer(BREAK_TIME) // Reset break timer to 5 minutes
-          }, 0)
+          // Only trigger if not already showing the modal
+          setShowBreakModal((current) => {
+            if (!current) {
+              const endTime = Date.now() + BREAK_TIME * 1000
+              breakEndTimeRef.current = endTime
+              setBreakTimer(BREAK_TIME)
+
+              logAnalyticsEvent('auto_break_triggered', {
+                currentTime: getElapsedTime(),
+                wordsFound: foundWords.length
+              })
+              return true
+            }
+            return current
+          })
           return 0
         }
         return prev - 1
@@ -312,14 +325,17 @@ export default function WordflowerGame() {
 
   // Break timer countdown while break modal is open
   useEffect(() => {
-    if (!showBreakModal) return
+    if (!showBreakModal || !breakEndTimeRef.current) return
 
     const id = setInterval(() => {
-      setBreakTimer((prev) => {
-        if (prev <= 1) return 0
-        return prev - 1
-      })
-    }, 1000)
+      const now = Date.now()
+      const remaining = Math.max(0, Math.ceil((breakEndTimeRef.current! - now) / 1000))
+      setBreakTimer(remaining)
+
+      if (remaining <= 0) {
+        clearInterval(id)
+      }
+    }, 500) // Update more frequently for smoothness
 
     return () => clearInterval(id)
   }, [showBreakModal])
@@ -769,7 +785,7 @@ export default function WordflowerGame() {
       skippedWord: oldWord,
       previousHintLevel: hintLevel,
       newTargetWord: hintWords[nextIndex]?.word || 'unknown',
-      currentTime: timer,
+      currentTime: getElapsedTime(),
       wordsFoundSoFar: foundWords.length
     })
   }
@@ -802,7 +818,7 @@ export default function WordflowerGame() {
     logAnalyticsEvent("hint_previous_word", {
       movedTo: hintWords[prevIndex]?.word || "unknown",
       from: hintWords[currentHintWordIndex]?.word || "unknown",
-      currentTime: timer,
+      currentTime: getElapsedTime(),
       wordsFoundSoFar: foundWords.length,
     });
   };
@@ -941,7 +957,7 @@ export default function WordflowerGame() {
       logAnalyticsEvent('hint_requested', {
         hintLevel: newHintLevel,
         targetWord: currentHintWord?.word || 'unknown',
-        currentTime: timer,
+        currentTime: getElapsedTime(),
         wordsFoundSoFar: foundWords.length
       })
     }
@@ -963,7 +979,7 @@ export default function WordflowerGame() {
         handleClear()
       }
       //handle letter click only if key is between A-Z
-      else if (key.length === 1 && key >= 'A' && key <= 'Z') {
+      else if (key.length === 1 && key >= 'A' && key <= 'Z' && !showBreakModal) {
         handleLetterClick(key)
       }
     }
@@ -1059,8 +1075,14 @@ export default function WordflowerGame() {
         setIsOpen={setShowBreakModal}
         breakTimer={breakTimer}
         setTimeSinceWord={setTimeSinceWord}
+        spotRoundIndex={spotRoundIndex}
+        onSpotRoundIndexChange={setSpotRoundIndex}
+        onResume={(answers) => {
+          if (Object.keys(answers).length > 0) {
+            logAnalyticsEvent('break_spot_difference_input', { answers })
+          }
+        }}
       />
-
       <Toaster />
     </div>
   )
