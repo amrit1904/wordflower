@@ -28,21 +28,17 @@ interface GameResults {
 interface FeedbackForm {
   satisfaction: number
   mostDifficult: string
-  willReturn: boolean
-  happyMoments?: string
-  frustratingMoments?: string
   improvementSuggestion?: string
-  willReturnReason?: string
+  breakHelpful?: string
+  stuckStrategy?: string
 }
 
 interface GameFeedback {
   satisfaction: number // 1-5 scale
   mostDifficult: string
-  willReturn: boolean
-  happyMoments?: string
-  frustratingMoments?: string
   improvementSuggestion?: string
-  willReturnReason?: string
+  breakHelpful?: string
+  stuckStrategy?: string
   submittedAt: Date
 }
 
@@ -61,11 +57,9 @@ function ResultsPageContent() {
   const [feedbackForm, setFeedbackForm] = useState<FeedbackForm>({
     satisfaction: 0,
     mostDifficult: '',
-    willReturn: true,
-    happyMoments: '',
-    frustratingMoments: '',
     improvementSuggestion: '',
-    willReturnReason: ''
+    breakHelpful: '',
+    stuckStrategy: ''
   })
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
@@ -199,11 +193,9 @@ function ResultsPageContent() {
     const feedback: GameFeedback = {
       satisfaction: feedbackForm.satisfaction,
       mostDifficult: feedbackForm.mostDifficult.trim(),
-      willReturn: feedbackForm.willReturn,
-      happyMoments: feedbackForm.happyMoments?.trim(),
-      frustratingMoments: feedbackForm.frustratingMoments?.trim(),
       improvementSuggestion: feedbackForm.improvementSuggestion?.trim(),
-      willReturnReason: feedbackForm.willReturnReason?.trim(),
+      breakHelpful: feedbackForm.breakHelpful?.trim(),
+      stuckStrategy: feedbackForm.stuckStrategy?.trim(),
       submittedAt: new Date()
     }
 
@@ -330,31 +322,31 @@ function ResultsPageContent() {
                 />
               </div>
 
-              {/* Happy/Clever Moments */}
+              {/* Break Helpful Question */}
               <div className="space-y-3 flex flex-col gap-1">
-                <label className="text-sm font-medium" htmlFor="happyMoments">
-                  Was there any moment where you felt genuinely happy, clever, or satisfied while playing? Describe what happened.
+                <label className="text-sm font-medium" htmlFor="breakHelpful">
+                  Do you feel like the break helped your gameplay?
                 </label>
                 <textarea
-                  id="happyMoments"
-                  value={feedbackForm.happyMoments || ''}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, happyMoments: e.target.value }))}
-                  placeholder="Describe moments of satisfaction, cleverness, or happiness during the game..."
+                  id="breakHelpful"
+                  value={feedbackForm.breakHelpful || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, breakHelpful: e.target.value }))}
+                  placeholder="Let us know how you felt about the break..."
                   className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={300}
                 />
               </div>
 
-              {/* Frustrating Moments */}
+              {/* Stuck Strategy Question */}
               <div className="space-y-3 flex flex-col gap-1">
-                <label className="text-sm font-medium" htmlFor="frustratingMoments">
-                  Was there any moment that felt unfair, frustrating, or demotivating? What happened and why did it bother you?
+                <label className="text-sm font-medium" htmlFor="stuckStrategy">
+                  What do you typically do when you feel stuck?
                 </label>
                 <textarea
-                  id="frustratingMoments"
-                  value={feedbackForm.frustratingMoments || ''}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, frustratingMoments: e.target.value }))}
-                  placeholder="Describe any frustrating or unfair moments and what caused them..."
+                  id="stuckStrategy"
+                  value={feedbackForm.stuckStrategy || ''}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, stuckStrategy: e.target.value }))}
+                  placeholder="Describe your strategy when you struggle to find words..."
                   className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={300}
                 />
@@ -372,43 +364,6 @@ function ResultsPageContent() {
                   placeholder="What would make this game more enjoyable for you?"
                   className="w-full p-3 border rounded-lg resize-none h-20 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
                   maxLength={300}
-                />
-              </div>
-
-              {/* Will Return Question */}
-              <div className="space-y-3 flex flex-col gap-1">
-                <label className="text-sm font-medium">
-                  Would you play Wordflower again on your own, without being asked to? Why or why not?
-                </label>
-                <div className="flex gap-4 justify-start mb-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="willReturn"
-                      checked={feedbackForm.willReturn === true}
-                      onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: true }))}
-                      className="text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">Yes, definitely!</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="willReturn"
-                      checked={feedbackForm.willReturn === false}
-                      onChange={() => setFeedbackForm(prev => ({ ...prev, willReturn: false }))}
-                      className="text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">Probably not</span>
-                  </label>
-                </div>
-                <textarea
-                  id="willReturnReason"
-                  value={feedbackForm.willReturnReason || ''}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, willReturnReason: e.target.value }))}
-                  placeholder="Please explain your reasoning..."
-                  className="w-full p-3 border rounded-lg resize-none h-16 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-                  maxLength={200}
                 />
               </div>
 
