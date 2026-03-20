@@ -1042,7 +1042,7 @@ export default function WordflowerGame() {
                 pangrams={foundPangrams}
               />
               <GameRules />
-              <Card className="p-6 mb-6">
+              {/* <Card className="p-6 mb-6">
                 <HintSystem
                   currentHintWord={currentHintWord}
                   hintLevel={hintLevel}
@@ -1051,7 +1051,7 @@ export default function WordflowerGame() {
                   foundWords={foundWords}
                   onPreviousWord={handlePreviousWord}
                 />
-              </Card>
+              </Card> */}
             </div>}
           </div>
         )}
